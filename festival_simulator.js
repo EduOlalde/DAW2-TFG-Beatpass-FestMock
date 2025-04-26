@@ -7,7 +7,7 @@
 
 // URL base de la API
 const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api'; // Asegúrate que el puerto y contexto son correctos
-const FESTIVAL_ID = 7; // ID del festival para esta simulación
+const FESTIVAL_ID = 19; // ID del festival para esta simulación
 
 // --- Estado (Simulación) ---
 // Usaremos localStorage para persistir las entradas compradas en esta sesión del navegador
