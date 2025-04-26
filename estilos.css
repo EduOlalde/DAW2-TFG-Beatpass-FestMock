@@ -1,96 +1,292 @@
+/* Estilos base y utilidades de Tailwind (se carga vía CDN en los HTML) */
+/* Este archivo contiene estilos personalizados compartidos y los específicos del POS */
+
 body {
     font-family: 'Inter', sans-serif;
+    /* Fuente base para todo */
+    line-height: 1.6;
+    background-color: #f4f4f4;
+    /* Fondo gris claro general */
+    padding: 20px;
+    /* Padding general */
 }
 
-.card {
+/* --- Estilos Comunes --- */
+
+.card,
+.container {
+    /* Unificar card y container si tienen el mismo propósito */
     background-color: white;
     border-radius: 0.5rem;
+    /* rounded-lg */
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    /* shadow-md */
     padding: 1.5rem;
+    /* p-6 */
     margin-bottom: 1.5rem;
+    /* mb-6 */
+    max-width: 800px;
+    /* Limitar ancho máximo */
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.button {
+/* Estilos para botones principales */
+.button,
+.button-pos {
     background-color: #4f46e5;
+    /* indigo-600 o #007bff */
     color: white;
     padding: 0.5rem 1rem;
+    /* py-2 px-4 o 10px 20px */
     border-radius: 0.375rem;
+    /* rounded-md o 4px */
     font-weight: 500;
+    /* font-medium */
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
     display: inline-block;
     border: none;
+    font-size: 1em;
+    /* Tamaño de fuente base para botones */
 }
 
-.button:hover {
+.button:hover,
+.button-pos:hover {
     background-color: #4338ca;
+    /* indigo-700 o #0056b3 */
 }
 
-.button:disabled {
+.button:disabled,
+.button-pos:disabled {
     background-color: #a5b4fc;
+    /* indigo-300 o color gris */
     cursor: not-allowed;
+    opacity: 0.7;
 }
 
+/* Botón secundario (ej: limpiar entradas) */
 .button-secondary {
     background-color: #6b7280;
+    /* gray-500 */
 }
 
 .button-secondary:hover {
     background-color: #4b5563;
+    /* gray-600 */
 }
 
-.input-field {
+/* Botón Logout específico */
+.button-pos.logout {
+    background-color: #dc3545;
+    /* Rojo */
+}
+
+.button-pos.logout:hover {
+    background-color: #c82333;
+    /* Rojo oscuro */
+}
+
+
+/* Estilos para campos de entrada */
+.input-field,
+.input-field-pos,
+select.input-field-pos {
+    /* Aplicar a inputs y select del POS */
     border: 1px solid #d1d5db;
+    /* border-gray-300 o #ccc */
     border-radius: 0.375rem;
+    /* rounded-md o 4px */
     padding: 0.5rem 0.75rem;
+    /* py-2 px-3 o 10px */
     width: 100%;
+    /* w-full o calc(100% - 22px) */
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    /* Importante para consistencia de tamaño */
+    margin-bottom: 15px;
+    /* Espacio inferior consistente */
 }
 
-.input-field:focus {
+.input-field:focus,
+.input-field-pos:focus,
+select.input-field-pos:focus {
     outline: 2px solid transparent;
     outline-offset: 2px;
     border-color: #6366f1;
+    /* focus:border-indigo-500 o #007bff */
     box-shadow: 0 0 0 2px #a5b4fc;
+    /* focus:ring-indigo-500 o similar */
 }
 
+/* Estilos para etiquetas */
 label {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+    /* mb-2 o 8px */
     font-weight: 500;
+    /* font-medium o bold */
     font-size: 0.875rem;
+    /* text-sm */
     color: #374151;
+    /* text-gray-700 o #555 */
 }
 
+/* Estilos para cajas de mensajes */
 .message-box {
     padding: 0.75rem;
+    /* p-3 */
     border-radius: 0.375rem;
+    /* rounded-md */
     margin-top: 1rem;
+    /* mt-4 */
     margin-bottom: 1rem;
+    /* mb-4 */
     font-size: 0.875rem;
+    /* text-sm */
+    border-width: 1px;
+    border-style: solid;
 }
 
 .error-message {
     background-color: #fee2e2;
+    /* bg-red-100 */
     color: #b91c1c;
-    border: 1px solid #fecaca;
+    /* text-red-700 */
+    border-color: #fecaca;
+    /* border-red-300 */
 }
 
 .success-message {
     background-color: #d1fae5;
+    /* bg-green-100 */
     color: #047857;
-    border: 1px solid #a7f3d0;
+    /* text-green-700 */
+    border-color: #a7f3d0;
+    /* border-green-300 */
 }
+
+/* --- Estilos Específicos de festival.html --- */
 
 .ticket-card {
     border: 1px solid #e5e7eb;
+    /* border-gray-200 */
     border-radius: 0.5rem;
+    /* rounded-lg */
     padding: 1rem;
+    /* p-4 */
     margin-bottom: 1rem;
+    /* mb-4 */
     background-color: #f9fafb;
+    /* bg-gray-50 */
 }
 
 .qr-image-display {
     border: 1px solid #e5e7eb;
+    /* border-gray-200 */
     display: block;
     margin-top: 0.5rem;
+    /* mt-2 */
+}
+
+/* --- Estilos Específicos de pos.html --- */
+
+h1,
+h2 {
+    /* Estilo de títulos en POS */
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+/* Estilos para los resultados específicos de sección en POS */
+.section-result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.95em;
+    min-height: 20px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent;
+    /* Borde inicial transparente */
+}
+
+.section-result.success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.section-result.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* Estilo para el estado del login en POS */
+#loginStatus {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+#loginStatus.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+#loginStatus.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Estilo para el área general de resultados en POS */
+#resultArea {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #eee;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+    min-height: 50px;
+    font-size: 0.9em;
+}
+
+#resultArea.success {
+    border-color: #c3e6cb;
+    /* Borde verde para éxito */
+}
+
+#resultArea.error {
+    border-color: #f5c6cb;
+    /* Borde rojo para error */
+}
+
+/* Estilos para enlaces de navegación en POS */
+.nav-links {
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.nav-links a {
+    color: #007bff;
+    /* Azul */
+    text-decoration: underline;
+    margin: 0 10px;
+}
+
+.nav-links a:hover {
+    color: #0056b3;
+    /* Azul oscuro */
+}
+
+.nav-links span {
+    color: #aaa;
+    /* Separador gris */
 }

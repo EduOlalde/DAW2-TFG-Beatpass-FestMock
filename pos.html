@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador POS - Beatpass</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+
+<body>
+
+    <h1>Simulador Punto de Venta (POS) - Beatpass</h1>
+
+    <div class="nav-links">
+        <a href="festival.html">&larr; Ir al Simulador Festival</a>
+        <span>|</span>
+        <a href="index.html">&larr; Volver al Inicio</a>
+    </div>
+
+
+    <div class="container">
+        <h2>Login Cajero</h2>
+        <form id="loginForm">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="cajero@beatpass.com" required class="input-field-pos">
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" value="pass" required class="input-field-pos">
+
+            <button type="submit" class="button-pos">Login</button>
+        </form>
+        <p>Estado: <span id="loginStatus" class="error">No autenticado</span></p>
+        <button id="logoutButton" style="display: none;" class="button-pos logout">Logout</button>
+    </div>
+
+    <div id="posOperations" style="display: none;">
+
+        <div class="container">
+            <h2>Contexto del POS</h2>
+            <label for="posFestivalId">Operando para Festival ID:</label>
+            <input type="number" id="posFestivalId" name="posFestivalId" value="19" required class="input-field-pos"
+                style="max-width: 100px; display: inline-block; margin-right: 10px;">
+            <span class="text-sm text-gray-600">(Usado para Recargas y Consumos)</span>
+        </div>
+        <div class="container">
+            <h2>Consultar Datos Pulsera</h2>
+            <form id="checkBalanceForm">
+                <label for="checkUid">Código UID Pulsera:</label>
+                <input type="text" id="checkUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
+                    class="input-field-pos">
+                <button type="submit" class="button-pos">Consultar</button>
+            </form>
+            <div id="consultaResult" class="section-result"></div>
+        </div>
+
+        <div class="container">
+            <h2>Recargar Pulsera</h2>
+            <form id="rechargeForm">
+                <label for="rechargeUid">Código UID Pulsera:</label>
+                <input type="text" id="rechargeUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
+                    class="input-field-pos">
+
+                <label for="rechargeAmount">Monto (€):</label>
+                <input type="number" id="rechargeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 20.50"
+                    required class="input-field-pos">
+
+                <label for="rechargeMethod">Método de Pago:</label>
+                <select id="rechargeMethod" name="metodoPago" class="input-field-pos">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Otro">Otro</option>
+                </select>
+
+                <button type="submit" class="button-pos">Recargar</button>
+            </form>
+            <div id="recargaResult" class="section-result"></div>
+        </div>
+
+        <div class="container">
+            <h2>Registrar Consumo</h2>
+            <form id="consumeForm">
+                <label for="consumeUid">Código UID Pulsera:</label>
+                <input type="text" id="consumeUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
+                    class="input-field-pos">
+
+                <label for="consumeAmount">Monto (€):</label>
+                <input type="number" id="consumeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 5.00"
+                    required class="input-field-pos">
+
+                <label for="consumeDescription">Descripción:</label>
+                <input type="text" id="consumeDescription" name="descripcion" value="Bebida" required
+                    class="input-field-pos">
+
+                <input type="hidden" id="consumeFestivalId" name="idFestival">
+
+                <label for="consumePosId">ID Punto Venta (Opcional):</label>
+                <input type="number" id="consumePosId" name="idPuntoVenta" placeholder="ID de este POS (si aplica)"
+                    class="input-field-pos">
+
+                <button type="submit" class="button-pos">Consumir</button>
+            </form>
+            <div id="consumoResult" class="section-result"></div>
+        </div>
+
+    </div>
+
+    <div class="container">
+        <h2>Resultados API (Respuesta Completa)</h2>
+        <div id="resultArea">Esperando acciones...</div>
+    </div>
+
+    <script src="pos.js"></script>
+</body>
+
+</html>

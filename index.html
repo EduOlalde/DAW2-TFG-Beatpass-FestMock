@@ -4,119 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compra Entradas - Festival Ejemplo - Beatpass</title>
+    <title>Simuladores Beatpass TFG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="estilos.css">
+    <style>
+        /* Estilos básicos para asegurar la fuente y centrado */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
 
+        /* Estilos para los enlaces de navegación */
+        .nav-link {
+            display: block;
+            margin: 1rem;
+            padding: 1rem;
+            background-color: #4f46e5;
+            /* Indigo-600 */
+            color: white;
+            text-align: center;
+            border-radius: 0.375rem;
+            /* rounded-md */
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #4338ca;
+            /* Indigo-700 */
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 text-gray-900 p-4 md:p-8">
-
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold text-indigo-700 mb-6 text-center">Compra de Entradas - Festival Ejemplo</h1>
-
-        <div id="festival-info" class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Información del Festival</h2>
-            <div id="festival-details">Cargando...</div>
-            <div id="festival-error" class="message-box error-message" style="display: none;"></div>
-        </div>
-
-        <div id="ticket-types" class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Tipos de Entrada Disponibles</h2>
-            <div id="ticket-list">Cargando...</div>
-            <div id="ticket-error" class="message-box error-message" style="display: none;"></div>
-        </div>
-
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Comprar Entradas</h2>
-            <form id="buy-ticket-form">
-                <input type="hidden" id="buy-festival-id" name="idFestival" value="1">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="buy-ticket-type">Tipo de Entrada:</label>
-                        <select id="buy-ticket-type" name="idEntrada" class="input-field" required>
-                            <option value="">Seleccione un tipo...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="buy-quantity">Cantidad:</label>
-                        <input type="number" id="buy-quantity" name="cantidad" value="1" min="1" class="input-field"
-                            required>
-                    </div>
-                </div>
-
-                <h3 class="text-lg font-medium mb-2 text-gray-700">Datos del Comprador</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="buy-email">Email:</label>
-                        <input type="email" id="buy-email" name="emailAsistente" class="input-field"
-                            placeholder="tu@email.com" required>
-                    </div>
-                    <div>
-                        <label for="buy-name">Nombre Completo:</label>
-                        <input type="text" id="buy-name" name="nombreAsistente" class="input-field"
-                            placeholder="Nombre Apellido" required>
-                    </div>
-                    <div>
-                        <label for="buy-phone">Teléfono (Opcional):</label>
-                        <input type="tel" id="buy-phone" name="telefonoAsistente" class="input-field"
-                            placeholder="600112233">
-                    </div>
-                </div>
-
-                <button type="submit" class="button">Comprar Entradas</button>
-            </form>
-            <div id="buy-result" class="message-box mt-4" style="display: none;"></div>
-        </div>
-
-        <div id="my-tickets-section" class="card" style="display: none;">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Mis Entradas Compradas (Esta Sesión)</h2>
-            <div id="my-tickets-list">
-            </div>
-            <button id="clear-tickets-button" class="button button-secondary mt-4 text-sm">Limpiar Entradas Compradas
-                (Simulación)</button>
-        </div>
-
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Nominar Entrada con QR</h2>
-            <form id="nominate-ticket-form">
-                <div class="mb-4">
-                    <label for="nominate-qr">Código QR de la Entrada:</label>
-                    <input type="text" id="nominate-qr" name="codigoQr" class="input-field"
-                        placeholder="Pega aquí el código QR (BEATPASS-TICKET-...)" required>
-                    <p class="text-xs text-gray-500 mt-1">Puedes copiar el código QR de la sección "Mis Entradas
-                        Compradas".</p>
-                </div>
-
-                <h3 class="text-lg font-medium mb-2 text-gray-700">Datos del Nominado</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="nominate-email">Email Nominado:</label>
-                        <input type="email" id="nominate-email" name="emailNominado" class="input-field"
-                            placeholder="nominado@email.com" required>
-                    </div>
-                    <div>
-                        <label for="nominate-name">Nombre Nominado:</label>
-                        <input type="text" id="nominate-name" name="nombreNominado" class="input-field"
-                            placeholder="Nombre Apellido" required>
-                    </div>
-                    <div>
-                        <label for="nominate-phone">Teléfono Nominado (Opcional):</label>
-                        <input type="tel" id="nominate-phone" name="telefonoNominado" class="input-field"
-                            placeholder="600112233">
-                    </div>
-                </div>
-
-                <button type="submit" class="button">Nominar Entrada</button>
-            </form>
-            <div id="nominate-result" class="message-box mt-4" style="display: none;"></div>
-        </div>
-
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold text-center text-indigo-700 mb-6">Simuladores Beatpass TFG</h1>
+        <a href="festival.html" class="nav-link">Simulador Venta Festival</a>
+        <a href="pos.html" class="nav-link">Simulador Punto de Venta (POS)</a>
     </div>
-    <script src="festival_simulator.js"></script>
 </body>
 
 </html>

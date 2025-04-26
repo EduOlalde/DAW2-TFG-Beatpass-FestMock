@@ -5,9 +5,11 @@
  * sin necesidad de login ni API Key desde el frontend.
  */
 
-// URL base de la API
-const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api'; 
-const FESTIVAL_ID = 19; // ID del festival para esta simulación
+// URL base de la API (Ajustar si el backend se despliega en otro sitio)
+const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api';
+//const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api';
+// ID del festival para esta simulación 
+const FESTIVAL_ID = 19; // Ejemplo: Luna Negra Fest
 
 // --- Estado (Simulación) ---
 // Usaremos localStorage para persistir las entradas compradas en esta sesión del navegador
@@ -26,7 +28,7 @@ const myTicketsListDiv = document.getElementById('my-tickets-list');
 const clearTicketsButton = document.getElementById('clear-tickets-button');
 const nominateTicketForm = document.getElementById('nominate-ticket-form');
 const nominateResultDiv = document.getElementById('nominate-result');
-// No hay elementos de login/logout
+const buyFestivalIdInput = document.getElementById('buy-festival-id'); // Input oculto
 
 // --- Funciones Auxiliares de UI ---
 
@@ -82,9 +84,11 @@ async function apiFetch(url, options = {}) {
         if (options.body instanceof URLSearchParams) {
             if (!headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded';
         } else if (typeof options.body === 'object' && !(options.body instanceof FormData)) {
+            // Si es un objeto JS, lo convertimos a JSON
             if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
             if (typeof options.body !== 'string') options.body = JSON.stringify(options.body);
         }
+        // Si es FormData, el navegador establece el Content-Type automáticamente
     }
 
     const fetchOptions = { ...options, headers: headers };
@@ -94,23 +98,43 @@ async function apiFetch(url, options = {}) {
         const response = await fetch(url, fetchOptions);
         const contentType = response.headers.get('content-type');
         let data;
+
+        // Intentar parsear como JSON si el Content-Type lo indica
         if (contentType && contentType.includes('application/json')) {
             data = await response.json();
         } else {
+            // Si no, obtener como texto
             data = await response.text();
+            // Intentar parsear como JSON de todas formas, por si el Content-Type es incorrecto
+            try {
+                data = JSON.parse(data);
+            } catch (e) {
+                // Si falla el parseo, mantener como texto
+                console.warn("Respuesta no es JSON válido, se mantiene como texto:", data);
+            }
         }
+
+        // Comprobar si la respuesta fue exitosa (status 2xx)
         if (!response.ok) {
-            const errorMessage = (typeof data === 'object' && data?.error) ? data.error : (typeof data === 'string' && data.length < 200 ? data : `Error ${response.status}`);
+            // Intentar obtener mensaje de error del cuerpo JSON, si no, usar texto de status
+            const errorMessage = (typeof data === 'object' && data?.error)
+                ? data.error
+                : (typeof data === 'string' && data.length < 200 && data.length > 0 ? data : `Error ${response.status}`);
             console.error(`API Error ${response.status}: ${errorMessage}`, data);
+            // Lanzar un error con el mensaje obtenido
             throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
         }
+
         console.log(`API Success ${options.method || 'GET'} ${url}:`, data);
-        return data;
+        return data; // Devolver los datos (JSON o texto)
+
     } catch (error) {
+        // Capturar errores de red o errores lanzados por !response.ok
         console.error(`Fetch error for ${url}:`, error);
         throw error; // Re-lanzar para que el llamador lo maneje
     }
 }
+
 
 // --- Funciones de Carga de Datos ---
 
@@ -118,6 +142,7 @@ async function apiFetch(url, options = {}) {
 async function loadFestivalDetails() {
     clearResult(festivalErrorDiv);
     festivalDetailsDiv.textContent = 'Cargando...';
+    if (buyFestivalIdInput) buyFestivalIdInput.value = FESTIVAL_ID; // Establecer ID en el form de compra
     try {
         // Llama al endpoint público (no requiere autenticación)
         const festival = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}`);
@@ -147,10 +172,12 @@ async function loadTicketTypes() {
     try {
         // Llama al endpoint público (no requiere autenticación)
         const ticketTypes = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}/entradas`);
-        ticketListDiv.innerHTML = '';
-        buyTicketTypeSelect.innerHTML = '<option value="">Seleccione un tipo...</option>';
+        ticketListDiv.innerHTML = ''; // Limpiar antes de añadir
+        buyTicketTypeSelect.innerHTML = '<option value="">Seleccione un tipo...</option>'; // Resetear select
+
         if (Array.isArray(ticketTypes) && ticketTypes.length > 0) {
             ticketTypes.forEach(ticket => {
+                // Mostrar tipo de entrada en la lista
                 const div = document.createElement('div');
                 div.className = 'border-b pb-2 mb-2';
                 div.innerHTML = `
@@ -160,20 +187,20 @@ async function loadTicketTypes() {
                     <p class="text-sm text-gray-500">Stock: ${ticket.stock !== null ? ticket.stock : 'N/A'}</p>
                 `;
                 ticketListDiv.appendChild(div);
+
+                // Añadir opción al select de compra si hay stock
+                const option = document.createElement('option');
+                option.value = ticket.idEntrada;
                 if (ticket.stock > 0) {
-                    const option = document.createElement('option');
-                    option.value = ticket.idEntrada;
                     option.textContent = `${ticket.tipo} (${ticket.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}) - Stock: ${ticket.stock}`;
-                    buyTicketTypeSelect.appendChild(option);
+                    option.disabled = false;
                 } else {
-                    const option = document.createElement('option');
-                    option.value = ticket.idEntrada;
                     option.textContent = `${ticket.tipo} (AGOTADO)`;
                     option.disabled = true;
-                    buyTicketTypeSelect.appendChild(option);
                 }
+                buyTicketTypeSelect.appendChild(option);
             });
-            buyTicketTypeSelect.disabled = false;
+            buyTicketTypeSelect.disabled = false; // Habilitar select si hay opciones
         } else {
             ticketListDiv.innerHTML = '<p class="text-gray-500 italic">No hay tipos de entrada disponibles para este festival.</p>';
             buyTicketTypeSelect.innerHTML = '<option value="">No hay entradas disponibles</option>';
@@ -187,6 +214,7 @@ async function loadTicketTypes() {
     }
 }
 
+
 // --- Manejadores de Eventos ---
 
 /** Maneja el envío del formulario de compra */
@@ -194,7 +222,7 @@ async function handleBuyTicket(event) {
     event.preventDefault();
     clearResult(buyResultDiv);
     const formData = new FormData(buyTicketForm);
-    const body = new URLSearchParams(formData);
+    const body = new URLSearchParams(formData); // Enviar como form-urlencoded
     const submitButton = buyTicketForm.querySelector('button[type="submit"]');
     setButtonState(submitButton, true, 'Procesando...', 'Comprar Entradas');
 
@@ -202,32 +230,39 @@ async function handleBuyTicket(event) {
         // Llama al endpoint público /api/public/venta/comprar
         const generatedTickets = await apiFetch(`${API_BASE_URL}/public/venta/comprar`, {
             method: 'POST',
-            body: body
+            body: body // URLSearchParams se envía como x-www-form-urlencoded
         });
 
         if (Array.isArray(generatedTickets) && generatedTickets.length > 0) {
             const cantidad = parseInt(formData.get('cantidad') || '0', 10);
+            // Añadir las nuevas entradas al array local y guardar en localStorage
             purchasedTickets.push(...generatedTickets);
             localStorage.setItem('purchasedTickets', JSON.stringify(purchasedTickets));
-            renderPurchasedTickets();
+            renderPurchasedTickets(); // Actualizar la lista visual
             displayMessage(buyResultDiv, `¡Compra realizada con éxito! Se generaron ${cantidad} entrada(s). Puedes verlas y nominarlas abajo.`, false);
             buyTicketForm.reset(); // Limpiar formulario
+            // Recargar tipos de entrada para actualizar stock visualmente
+            loadTicketTypes();
         } else {
-            displayMessage(buyResultDiv, 'La compra no devolvió entradas válidas.', true);
+            // Si la respuesta no es un array o está vacío
+            displayMessage(buyResultDiv, 'La compra se procesó, pero no se recibieron detalles de las entradas generadas.', true);
         }
     } catch (error) {
+        // Mostrar error específico de la API
         displayMessage(buyResultDiv, `Error en la compra: ${error.message}`, true);
     } finally {
+        // Reactivar el botón
         setButtonState(submitButton, false, 'Procesando...', 'Comprar Entradas');
     }
 }
+
 
 /** Maneja el envío del formulario de nominación */
 async function handleNominateTicket(event) {
     event.preventDefault();
     clearResult(nominateResultDiv);
     const formData = new FormData(nominateTicketForm);
-    const body = new URLSearchParams(formData);
+    const body = new URLSearchParams(formData); // Enviar como form-urlencoded
     const submitButton = nominateTicketForm.querySelector('button[type="submit"]');
     setButtonState(submitButton, true, 'Nominando...', 'Nominar Entrada');
 
@@ -238,90 +273,106 @@ async function handleNominateTicket(event) {
             body: body
         });
 
+        // Mostrar mensaje de éxito (asumiendo que la API devuelve un objeto con 'mensaje')
         displayMessage(nominateResultDiv, result.mensaje || 'Entrada nominada con éxito.', false);
         nominateTicketForm.reset(); // Limpiar formulario
-        updatePurchasedTicketStatus(formData.get('codigoQr'), 'Nominada'); // Actualizar visualmente
+
+        // Actualizar visualmente la entrada en la lista de "Mis Entradas"
+        updatePurchasedTicketStatus(formData.get('codigoQr'), 'Nominada');
 
     } catch (error) {
+        // Mostrar error específico de la API
         displayMessage(nominateResultDiv, `Error al nominar: ${error.message}`, true);
     } finally {
+        // Reactivar el botón
         setButtonState(submitButton, false, 'Nominando...', 'Nominar Entrada');
     }
 }
+
 
 // --- Funciones para Mostrar Entradas Compradas (Simulación) ---
 
 /** Renderiza las entradas guardadas en localStorage */
 function renderPurchasedTickets() {
-    myTicketsListDiv.innerHTML = '';
+    myTicketsListDiv.innerHTML = ''; // Limpiar lista actual
     if (purchasedTickets.length === 0) {
-        myTicketsSection.style.display = 'none';
+        myTicketsSection.style.display = 'none'; // Ocultar sección si no hay entradas
         return;
     }
-    myTicketsSection.style.display = 'block';
+    myTicketsSection.style.display = 'block'; // Mostrar sección
 
+    // Iterar sobre las entradas compradas y crear elementos HTML
     purchasedTickets.forEach((ticket) => {
         const card = document.createElement('div');
+        // Usar clases de Tailwind para estilizar la tarjeta
         card.className = 'ticket-card grid grid-cols-1 md:grid-cols-3 gap-4 items-center';
 
+        // Columna de detalles de la entrada
         const detailsDiv = document.createElement('div');
-        detailsDiv.className = 'md:col-span-2';
+        detailsDiv.className = 'md:col-span-2'; // Ocupa 2 columnas en pantallas medianas+
         detailsDiv.innerHTML = `
-            <p><strong class="font-medium">ID Entrada:</strong> ${ticket.idEntradaAsignada}</p>
+            <p><strong class="font-medium">ID Entrada:</strong> ${ticket.idEntradaAsignada || 'N/A'}</p>
+            <p><strong class="font-medium">Tipo:</strong> ${ticket.tipoEntradaOriginal || 'N/A'}</p>
             <p><strong class="font-medium">Código QR:</strong>
                <input type="text" value="${ticket.codigoQr || 'N/A'}" readonly class="text-xs font-mono bg-gray-200 px-1 rounded border border-gray-300 w-full mt-1 cursor-pointer" title="Haz clic para copiar" onclick="this.select(); try{document.execCommand('copy'); alert('Código QR copiado!');}catch(e){alert('No se pudo copiar.');}">
             </p>
             <p><strong class="font-medium">Estado:</strong> ${ticket.estado || 'N/A'} <span class="text-blue-600 font-semibold">${ticket.statusVisual || ''}</span></p>
-             ${ticket.nombreAsistente ? `<p><strong class="font-medium">Nominada a:</strong> ${ticket.nombreAsistente} (${ticket.emailAsistente})</p>` : ''}
+            ${ticket.nombreAsistente ? `<p><strong class="font-medium">Nominada a:</strong> ${ticket.nombreAsistente} (${ticket.emailAsistente || 'email no disponible'})</p>` : '<p class="text-sm text-orange-600 italic">Pendiente de nominar</p>'}
         `;
 
+        // Columna para la imagen QR
         const qrDiv = document.createElement('div');
-        qrDiv.className = 'text-center md:text-right';
+        qrDiv.className = 'text-center md:text-right'; // Centrado en móvil, derecha en escritorio
         if (ticket.qrCodeImageDataUrl) {
+            // Mostrar la imagen QR si la URL de datos está disponible
             qrDiv.innerHTML = `<img src="${ticket.qrCodeImageDataUrl}" alt="QR Entrada ${ticket.idEntradaAsignada}" class="w-24 h-24 inline-block qr-image-display" width="96" height="96">`;
         } else {
+            // Mensaje si no hay imagen QR
             qrDiv.innerHTML = `<span class="text-xs text-gray-400 italic">(Imagen QR no disponible)</span>`;
         }
 
+        // Añadir las columnas a la tarjeta y la tarjeta a la lista
         card.appendChild(detailsDiv);
         card.appendChild(qrDiv);
         myTicketsListDiv.appendChild(card);
     });
 }
 
+
 /** Limpia las entradas de localStorage */
 function clearPurchasedTickets() {
     if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación?')) {
-        purchasedTickets = [];
-        localStorage.removeItem('purchasedTickets');
-        renderPurchasedTickets();
+        purchasedTickets = []; // Vaciar array local
+        localStorage.removeItem('purchasedTickets'); // Limpiar localStorage
+        renderPurchasedTickets(); // Actualizar la vista
         console.log('Entradas compradas (simulación) borradas.');
     }
 }
 
-/** Actualiza visualmente el estado de una entrada */
+/** Actualiza visualmente el estado de una entrada en la lista local (no persiste el estado visual) */
 function updatePurchasedTicketStatus(qrCode, visualStatus) {
+    // Mapear el array para encontrar la entrada y añadir/actualizar 'statusVisual'
     purchasedTickets = purchasedTickets.map(ticket => {
         if (ticket.codigoQr === qrCode) {
-            // Añadimos un campo visual, no modificamos el 'estado' real
+            // Añadimos un campo visual temporal, no modificamos el 'estado' real de la API
             return { ...ticket, statusVisual: `(${visualStatus})` };
         }
-        return ticket;
+        return ticket; // Devolver las otras entradas sin cambios
     });
-    // No guardar estado visual en localStorage
+    // No guardar este estado visual en localStorage, solo actualizar la vista
     renderPurchasedTickets();
 }
 
 
 // --- Inicialización y Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar datos iniciales
+    // Cargar datos iniciales al cargar la página
     loadFestivalDetails();
     loadTicketTypes();
-    renderPurchasedTickets(); // Mostrar entradas guardadas
+    renderPurchasedTickets(); // Mostrar entradas previamente compradas (si existen en localStorage)
 
-    // Añadir listeners a los formularios
-    buyTicketForm.addEventListener('submit', handleBuyTicket);
-    nominateTicketForm.addEventListener('submit', handleNominateTicket);
-    clearTicketsButton.addEventListener('click', clearPurchasedTickets);
+    // Añadir listeners a los formularios y botones
+    if (buyTicketForm) buyTicketForm.addEventListener('submit', handleBuyTicket);
+    if (nominateTicketForm) nominateTicketForm.addEventListener('submit', handleNominateTicket);
+    if (clearTicketsButton) clearTicketsButton.addEventListener('click', clearPurchasedTickets);
 });
