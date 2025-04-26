@@ -6,7 +6,7 @@
  */
 
 // URL base de la API
-const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api'; // Asegúrate que el puerto y contexto son correctos
+const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api'; 
 const FESTIVAL_ID = 19; // ID del festival para esta simulación
 
 // --- Estado (Simulación) ---
