@@ -1,6 +1,7 @@
 # Simulador Frontend - Beatpass TFG
 
 Este directorio contiene los archivos HTML, CSS y JavaScript para simular la interfaz de usuario de la plataforma Beatpass, interactuando con el backend de Beatpass TFG.
+https://github.com/EduOlalde/DAW2-TFG-Beatpass.git
 
 ## Propósito
 
