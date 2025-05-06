@@ -188,8 +188,6 @@ async function handleCheckBalance(event) {
     displayResult(`Consultando pulsera UID: ${uid}...`, false);
 
     try {
-        // La consulta de datos no necesita el idFestival explícitamente en la URL,
-        // la verificación de permisos (si es promotor) se hace en el backend.
         const data = await fetchWithAuth(`${API_BASE_URL}/pos/pulseras/${uid}`, { method: 'GET' });
         if (data && data.saldo !== undefined && data.activa !== undefined) {
             const estado = data.activa ? 'Activa' : 'Inactiva';

@@ -1,150 +1,127 @@
 /**
  * festival_simulator.js
  * Lógica para el simulador de compra y nominación de entradas,
- * interactuando con los endpoints públicos /api/public/venta/*
- * sin necesidad de login ni API Key desde el frontend.
+ * incluyendo el flujo de pago con Stripe y la visualización de entradas compradas.
  */
 
-// URL base de la API (Ajustar si el backend se despliega en otro sitio)
+// --- Configuración ---
 const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api';
-// ID del festival para esta simulación 
-const FESTIVAL_ID = 19; // Ejemplo: Luna Negra Fest
+//const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api'; // Para pruebas locales
+const FESTIVAL_ID = 19;
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX';
 
-// --- Estado (Simulación) ---
-// Usaremos localStorage para persistir las entradas compradas en esta sesión del navegador
+// --- Variables Globales ---
 let purchasedTickets = JSON.parse(localStorage.getItem('purchasedTickets') || '[]');
+let stripe = null;
+let cardElement = null;
 
 // --- Selectores del DOM ---
 const festivalDetailsDiv = document.getElementById('festival-details');
 const festivalErrorDiv = document.getElementById('festival-error');
 const ticketListDiv = document.getElementById('ticket-list');
 const ticketErrorDiv = document.getElementById('ticket-error');
-const buyTicketForm = document.getElementById('buy-ticket-form');
+const paymentForm = document.getElementById('payment-form');
 const buyTicketTypeSelect = document.getElementById('buy-ticket-type');
-const buyResultDiv = document.getElementById('buy-result');
+const buyQuantityInput = document.getElementById('buy-quantity');
+const buyEmailInput = document.getElementById('buy-email');
+const buyNameInput = document.getElementById('buy-name');
+const buyPhoneInput = document.getElementById('buy-phone');
+const cardElementContainer = document.getElementById('card-element');
+const cardErrorsDiv = document.getElementById('card-errors');
+const submitButton = document.getElementById('submit-button');
+const buttonText = document.getElementById('button-text');
+const spinner = document.getElementById('spinner');
+const paymentResultDiv = document.getElementById('payment-result');
 const myTicketsSection = document.getElementById('my-tickets-section');
 const myTicketsListDiv = document.getElementById('my-tickets-list');
 const clearTicketsButton = document.getElementById('clear-tickets-button');
 const nominateTicketForm = document.getElementById('nominate-ticket-form');
 const nominateResultDiv = document.getElementById('nominate-result');
-const buyFestivalIdInput = document.getElementById('buy-festival-id'); // Input oculto
+const buyFestivalIdInput = document.getElementById('buy-festival-id');
 
 // --- Funciones Auxiliares de UI ---
-
-/**
- * Muestra un mensaje en un div específico, con clase de éxito o error.
- * @param {HTMLElement} element - El elemento div donde mostrar el mensaje.
- * @param {string} message - El mensaje.
- * @param {boolean} isError - true si es error, false si es éxito.
- */
 function displayMessage(element, message, isError) {
     if (!element) return;
-    element.innerHTML = ''; // Limpiar contenido previo
+    element.innerHTML = '';
     const p = document.createElement('p');
-    p.innerHTML = message; // Usar innerHTML por si hay saltos de línea
+    p.innerHTML = message;
     element.appendChild(p);
     element.className = `message-box ${isError ? 'error-message' : 'success-message'}`;
     element.style.display = 'block';
-    if (isError) console.error(message); else console.log(message);
+    if (isError) console.error("Mensaje UI (Error):", message);
+    else console.log("Mensaje UI (Éxito):", message);
 }
-
-/** Limpia un mensaje de resultado */
 function clearResult(element) {
     if (element) {
         element.textContent = '';
         element.style.display = 'none';
-        element.className = 'message-box'; // Resetear clase
+        element.className = 'message-box';
+    }
+}
+function setLoadingState(isLoading) {
+    if (!submitButton || !buttonText || !spinner) return;
+    if (isLoading) {
+        submitButton.disabled = true;
+        buttonText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+        submitButton.classList.add('opacity-75', 'cursor-not-allowed');
+    } else {
+        submitButton.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+        submitButton.classList.remove('opacity-75', 'cursor-not-allowed');
     }
 }
 
-/** Habilita o deshabilita un botón y cambia su texto */
-function setButtonState(button, isLoading, loadingText, defaultText) {
-    if (button) {
-        button.disabled = isLoading;
-        button.textContent = isLoading ? loadingText : defaultText;
-        if (isLoading) button.classList.add('opacity-50', 'cursor-not-allowed');
-        else button.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-}
-
-// --- Funciones de API (Sin autenticación) ---
-
-/**
- * Realiza una petición fetch a la API. No añade cabeceras de autenticación.
- * @param {string} url - URL completa del endpoint.
- * @param {object} [options={}] - Opciones para fetch (method, headers, body).
- * @returns {Promise<any>} - Promesa que resuelve con los datos JSON o texto, o rechaza con error.
- */
+// --- Funciones de API ---
 async function apiFetch(url, options = {}) {
     const headers = { ...(options.headers || {}) };
-
-    // Establecer Content-Type si hay body y no está definido
     if (options.body) {
         if (options.body instanceof URLSearchParams) {
-            if (!headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            if (!headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
         } else if (typeof options.body === 'object' && !(options.body instanceof FormData)) {
-            // Si es un objeto JS, lo convertimos a JSON
             if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
-            if (typeof options.body !== 'string') options.body = JSON.stringify(options.body);
-        }
-        // Si es FormData, el navegador establece el Content-Type automáticamente
-    }
-
-    const fetchOptions = { ...options, headers: headers };
-    console.log(`Fetching: ${url}`, fetchOptions);
-
-    try {
-        const response = await fetch(url, fetchOptions);
-        const contentType = response.headers.get('content-type');
-        let data;
-
-        // Intentar parsear como JSON si el Content-Type lo indica
-        if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-        } else {
-            // Si no, obtener como texto
-            data = await response.text();
-            // Intentar parsear como JSON de todas formas, por si el Content-Type es incorrecto
-            try {
-                data = JSON.parse(data);
-            } catch (e) {
-                // Si falla el parseo, mantener como texto
-                console.warn("Respuesta no es JSON válido, se mantiene como texto:", data);
+            if (typeof options.body !== 'string') {
+                options.body = JSON.stringify(options.body);
             }
         }
-
-        // Comprobar si la respuesta fue exitosa (status 2xx)
+    }
+    const fetchOptions = { ...options, headers: headers };
+    console.log(`API Fetching: ${url}`, fetchOptions);
+    try {
+        const response = await fetch(url, fetchOptions);
+        let responseData = null;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            try { responseData = await response.json(); }
+            catch (jsonError) {
+                console.warn("Fallo al parsear JSON, intentando obtener texto.", jsonError);
+                try { responseData = await response.text(); console.warn("Respuesta obtenida como texto:", responseData); }
+                catch (textError) { console.error("Fallo crítico al obtener texto de respuesta.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+            }
+        } else {
+            try { responseData = await response.text(); }
+            catch (textError) { console.error("Fallo al obtener texto no JSON.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+        }
         if (!response.ok) {
-            // Intentar obtener mensaje de error del cuerpo JSON, si no, usar texto de status
-            const errorMessage = (typeof data === 'object' && data?.error)
-                ? data.error
-                : (typeof data === 'string' && data.length < 200 && data.length > 0 ? data : `Error ${response.status}`);
-            console.error(`API Error ${response.status}: ${errorMessage}`, data);
-            // Lanzar un error con el mensaje obtenido
+            console.error(`API Error Response ${response.status} for ${url}:`, responseData);
+            const errorMessage = (typeof responseData === 'object' && responseData?.error) ? responseData.error : (typeof responseData === 'string' && responseData.length < 200 && responseData.length > 0 ? responseData : `Error ${response.status}`);
             throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
         }
-
-        console.log(`API Success ${options.method || 'GET'} ${url}:`, data);
-        return data; // Devolver los datos (JSON o texto)
-
+        console.log(`API Success ${options.method || 'GET'} ${url}:`, responseData);
+        return responseData;
     } catch (error) {
-        // Capturar errores de red o errores lanzados por !response.ok
-        console.error(`Fetch error for ${url}:`, error);
-        throw error; // Re-lanzar para que el llamador lo maneje
+        console.error(`API Fetch error for ${url}:`, error);
+        throw error;
     }
 }
 
-
 // --- Funciones de Carga de Datos ---
-
-/** Carga los detalles del festival */
 async function loadFestivalDetails() {
     clearResult(festivalErrorDiv);
-    festivalDetailsDiv.textContent = 'Cargando...';
-    if (buyFestivalIdInput) buyFestivalIdInput.value = FESTIVAL_ID; // Establecer ID en el form de compra
+    festivalDetailsDiv.textContent = 'Cargando detalles del festival...';
+    if (buyFestivalIdInput) buyFestivalIdInput.value = FESTIVAL_ID;
     try {
-        // Llama al endpoint público (no requiere autenticación)
         const festival = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}`);
         if (festival && typeof festival === 'object') {
             festivalDetailsDiv.innerHTML = `
@@ -163,21 +140,18 @@ async function loadFestivalDetails() {
         festivalDetailsDiv.textContent = '';
     }
 }
-
-/** Carga los tipos de entrada */
 async function loadTicketTypes() {
     clearResult(ticketErrorDiv);
-    ticketListDiv.textContent = 'Cargando...';
+    ticketListDiv.textContent = 'Cargando tipos de entrada...';
     buyTicketTypeSelect.innerHTML = '<option value="">Cargando...</option>';
+    buyTicketTypeSelect.disabled = true;
     try {
-        // Llama al endpoint público (no requiere autenticación)
         const ticketTypes = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}/entradas`);
-        ticketListDiv.innerHTML = ''; // Limpiar antes de añadir
-        buyTicketTypeSelect.innerHTML = '<option value="">Seleccione un tipo...</option>'; // Resetear select
-
+        ticketListDiv.innerHTML = '';
+        buyTicketTypeSelect.innerHTML = '<option value="">Seleccione un tipo...</option>';
         if (Array.isArray(ticketTypes) && ticketTypes.length > 0) {
+            let hasAvailableTickets = false;
             ticketTypes.forEach(ticket => {
-                // Mostrar tipo de entrada en la lista
                 const div = document.createElement('div');
                 div.className = 'border-b pb-2 mb-2';
                 div.innerHTML = `
@@ -187,22 +161,24 @@ async function loadTicketTypes() {
                     <p class="text-sm text-gray-500">Stock: ${ticket.stock !== null ? ticket.stock : 'N/A'}</p>
                 `;
                 ticketListDiv.appendChild(div);
-
-                // Añadir opción al select de compra si hay stock
                 const option = document.createElement('option');
                 option.value = ticket.idEntrada;
                 if (ticket.stock > 0) {
                     option.textContent = `${ticket.tipo} (${ticket.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}) - Stock: ${ticket.stock}`;
                     option.disabled = false;
+                    hasAvailableTickets = true;
                 } else {
                     option.textContent = `${ticket.tipo} (AGOTADO)`;
                     option.disabled = true;
                 }
                 buyTicketTypeSelect.appendChild(option);
             });
-            buyTicketTypeSelect.disabled = false; // Habilitar select si hay opciones
+            buyTicketTypeSelect.disabled = !hasAvailableTickets;
+            if (!hasAvailableTickets) {
+                buyTicketTypeSelect.innerHTML = '<option value="">Entradas Agotadas</option>';
+            }
         } else {
-            ticketListDiv.innerHTML = '<p class="text-gray-500 italic">No hay tipos de entrada disponibles para este festival.</p>';
+            ticketListDiv.innerHTML = '<p class="text-gray-500 italic">No hay tipos de entrada disponibles.</p>';
             buyTicketTypeSelect.innerHTML = '<option value="">No hay entradas disponibles</option>';
             buyTicketTypeSelect.disabled = true;
         }
@@ -214,165 +190,308 @@ async function loadTicketTypes() {
     }
 }
 
-
-// --- Manejadores de Eventos ---
-
-/** Maneja el envío del formulario de compra */
-async function handleBuyTicket(event) {
-    event.preventDefault();
-    clearResult(buyResultDiv);
-    const formData = new FormData(buyTicketForm);
-    const body = new URLSearchParams(formData); // Enviar como form-urlencoded
-    const submitButton = buyTicketForm.querySelector('button[type="submit"]');
-    setButtonState(submitButton, true, 'Procesando...', 'Comprar Entradas');
-
+// --- Inicialización de Stripe ---
+function initializeStripe() {
+    if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY === 'pk_test_TU_CLAVE_PUBLICABLE_AQUI') {
+        console.error("¡ERROR! Clave publicable de Stripe no configurada. Reemplaza el placeholder en festival_simulator.js.");
+        displayMessage(paymentResultDiv, "Error de configuración: Falta la clave publicable de Stripe.", true);
+        if (submitButton) submitButton.disabled = true;
+        return;
+    }
     try {
-        // Llama al endpoint público /api/public/venta/comprar
-        const generatedTickets = await apiFetch(`${API_BASE_URL}/public/venta/comprar`, {
-            method: 'POST',
-            body: body // URLSearchParams se envía como x-www-form-urlencoded
-        });
-
-        if (Array.isArray(generatedTickets) && generatedTickets.length > 0) {
-            const cantidad = parseInt(formData.get('cantidad') || '0', 10);
-            // Añadir las nuevas entradas al array local y guardar en localStorage
-            purchasedTickets.push(...generatedTickets);
-            localStorage.setItem('purchasedTickets', JSON.stringify(purchasedTickets));
-            renderPurchasedTickets(); // Actualizar la lista visual
-            displayMessage(buyResultDiv, `¡Compra realizada con éxito! Se generaron ${cantidad} entrada(s). Puedes verlas y nominarlas abajo.`, false);
-            buyTicketForm.reset(); // Limpiar formulario
-            // Recargar tipos de entrada para actualizar stock visualmente
-            loadTicketTypes();
+        stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        const elements = stripe.elements();
+        const style = {
+            base: { color: '#32325d', fontFamily: '"Inter", sans-serif', fontSmoothing: 'antialiased', fontSize: '16px', '::placeholder': { color: '#aab7c4' } },
+            invalid: { color: '#fa755a', iconColor: '#fa755a' }
+        };
+        cardElement = elements.create('card', { style: style });
+        if (cardElementContainer) {
+            cardElement.mount('#card-element');
+            console.log("Stripe Card Element montado.");
         } else {
-            // Si la respuesta no es un array o está vacío
-            displayMessage(buyResultDiv, 'La compra se procesó, pero no se recibieron detalles de las entradas generadas.', true);
+            console.error("Error: No se encontró el contenedor #card-element en el HTML.");
+            throw new Error("Contenedor de Stripe no encontrado.");
         }
+        cardElement.on('change', (event) => {
+            if (cardErrorsDiv) {
+                if (event.error) { cardErrorsDiv.textContent = event.error.message; }
+                else { cardErrorsDiv.textContent = ''; }
+            }
+        });
+        console.log("Stripe Elements inicializado correctamente.");
     } catch (error) {
-        // Mostrar error específico de la API
-        displayMessage(buyResultDiv, `Error en la compra: ${error.message}`, true);
-    } finally {
-        // Reactivar el botón
-        setButtonState(submitButton, false, 'Procesando...', 'Comprar Entradas');
+        console.error("Error inicializando Stripe Elements:", error);
+        displayMessage(paymentResultDiv, `Error al inicializar el sistema de pago: ${error.message}. Por favor, recarga la página.`, true);
+        if (submitButton) submitButton.disabled = true;
     }
 }
 
+// --- Manejador de Pago ---
 
-/** Maneja el envío del formulario de nominación */
+/**
+ * Maneja el envío del formulario de pago.
+ */
+async function handlePaymentSubmit(event) {
+    event.preventDefault();
+    setLoadingState(true);
+    clearResult(paymentResultDiv);
+    if (cardErrorsDiv) cardErrorsDiv.textContent = '';
+
+    if (!stripe || !cardElement) {
+        displayMessage(paymentResultDiv, "Error: El sistema de pago no está listo. Intenta recargar.", true);
+        setLoadingState(false);
+        return;
+    }
+
+    // 1. Recoger datos del formulario
+    const idEntrada = buyTicketTypeSelect.value;
+    const cantidad = parseInt(buyQuantityInput.value, 10);
+    const emailAsistente = buyEmailInput.value;
+    const nombreAsistente = buyNameInput.value;
+    const telefonoAsistente = buyPhoneInput.value;
+
+    if (!idEntrada || cantidad <= 0 || !emailAsistente || !nombreAsistente) {
+        displayMessage(paymentResultDiv, "Por favor, completa todos los campos obligatorios (tipo de entrada, cantidad, email, nombre).", true);
+        setLoadingState(false);
+        return;
+    }
+
+    let clientSecret = null;
+
+    try {
+        // 2. Llamar al backend para iniciar el pago
+        console.log("Llamando a backend: /public/venta/iniciar-pago");
+        const iniciarPagoResponse = await apiFetch(`${API_BASE_URL}/public/venta/iniciar-pago`, {
+            method: 'POST',
+            body: JSON.stringify({ idEntrada: parseInt(idEntrada, 10), cantidad: cantidad }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        clientSecret = iniciarPagoResponse?.clientSecret;
+        if (!clientSecret) throw new Error("No se recibió el 'client_secret' del servidor.");
+        console.log("Client Secret recibido.");
+
+        // 3. Confirmar el pago de la tarjeta con Stripe.js
+        console.log("Confirmando pago de tarjeta con Stripe...");
+        const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+            clientSecret, { payment_method: { card: cardElement } }
+        );
+        if (stripeError) {
+            console.error("Error de Stripe al confirmar pago:", stripeError);
+            if (cardErrorsDiv) cardErrorsDiv.textContent = stripeError.message || "Error desconocido durante el pago.";
+            displayMessage(paymentResultDiv, `Error en el pago con tarjeta: ${stripeError.message}`, true);
+            setLoadingState(false);
+            return;
+        }
+
+        // 4. Si el pago con Stripe fue exitoso
+        console.log("Pago con Stripe exitoso. PaymentIntent:", paymentIntent);
+        if (paymentIntent && paymentIntent.status === 'succeeded') {
+            // 5. Llamar al backend para confirmar la compra en nuestro sistema
+            console.log("Llamando a backend: /public/venta/confirmar-compra");
+            const backendConfirmationData = new URLSearchParams({
+                idFestival: FESTIVAL_ID.toString(),
+                idEntrada: idEntrada,
+                cantidad: cantidad.toString(),
+                emailAsistente: emailAsistente,
+                nombreAsistente: nombreAsistente,
+                telefonoAsistente: telefonoAsistente || '',
+                paymentIntentId: paymentIntent.id
+            });
+            const compraConfirmada = await apiFetch(`${API_BASE_URL}/public/venta/confirmar-compra`, {
+                method: 'POST',
+                body: backendConfirmationData
+            });
+
+            // 6. Mostrar éxito y PROCESAR ENTRADAS GENERADAS
+            displayMessage(paymentResultDiv, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. Añadiendo entradas a la lista...`, false);
+
+            // --- INICIO: Procesar entradas generadas ---
+            if (compraConfirmada.entradasGeneradas && Array.isArray(compraConfirmada.entradasGeneradas)) {
+                console.log("Procesando entradas generadas recibidas:", compraConfirmada.entradasGeneradas);
+                const nuevasEntradasParaMostrar = [];
+                // Usar Promise.all para generar QRs en paralelo
+                await Promise.all(compraConfirmada.entradasGeneradas.map(async (entradaDTO) => {
+                    const qrImageDataUrl = await generateQrDataUrl(entradaDTO.codigoQr); // Generar QR
+                    const ticketLocal = {
+                        idEntradaAsignada: entradaDTO.idEntradaAsignada,
+                        codigoQr: entradaDTO.codigoQr,
+                        estado: entradaDTO.estado,
+                        tipoEntradaOriginal: entradaDTO.tipoEntradaOriginal,
+                        qrCodeImageDataUrl: qrImageDataUrl, // Guardar URL generada
+                        nombreAsistente: entradaDTO.nombreAsistente,
+                        emailAsistente: entradaDTO.emailAsistente,
+                        statusVisual: ''
+                    };
+                    nuevasEntradasParaMostrar.push(ticketLocal);
+                }));
+
+                // Añadir las nuevas entradas al array global y guardar en localStorage
+                purchasedTickets.push(...nuevasEntradasParaMostrar);
+                localStorage.setItem('purchasedTickets', JSON.stringify(purchasedTickets));
+                renderPurchasedTickets(); // Actualizar la lista visual CON las imágenes QR
+                console.log("Entradas generadas añadidas a la lista local y renderizadas.");
+            } else {
+                console.warn("La respuesta de confirmación no contenía la lista 'entradasGeneradas'. No se pueden mostrar las nuevas entradas.");
+                // Modificar mensaje si no se reciben entradas
+                displayMessage(paymentResultDiv, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. (No se recibieron detalles de entradas generadas).`, false);
+            }
+            // --- FIN: Procesar entradas generadas ---
+
+            if (paymentForm) paymentForm.reset();
+            if (cardElement) cardElement.clear();
+            loadTicketTypes(); // Recargar tipos para stock
+
+        } else {
+            console.warn("Estado inesperado del PaymentIntent tras confirmación:", paymentIntent?.status);
+            displayMessage(paymentResultDiv, `El pago no se completó del todo (Estado: ${paymentIntent?.status || 'desconocido'}). Contacta con soporte.`, true);
+        }
+
+    } catch (error) {
+        console.error("Error en el proceso de pago completo:", error);
+        displayMessage(paymentResultDiv, `Error procesando la compra: ${error.message || 'Error desconocido'}`, true);
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+// --- Manejador de Nominación ---
 async function handleNominateTicket(event) {
     event.preventDefault();
     clearResult(nominateResultDiv);
     const formData = new FormData(nominateTicketForm);
-    const body = new URLSearchParams(formData); // Enviar como form-urlencoded
+    const body = new URLSearchParams(formData);
     const submitButton = nominateTicketForm.querySelector('button[type="submit"]');
-    setButtonState(submitButton, true, 'Nominando...', 'Nominar Entrada');
-
+    submitButton.disabled = true; submitButton.textContent = 'Nominando...';
     try {
-        // Llama al endpoint público /api/public/venta/nominar
-        const result = await apiFetch(`${API_BASE_URL}/public/venta/nominar`, {
-            method: 'POST',
-            body: body
-        });
-
-        // Mostrar mensaje de éxito (asumiendo que la API devuelve un objeto con 'mensaje')
+        const result = await apiFetch(`${API_BASE_URL}/public/venta/nominar`, { method: 'POST', body: body });
         displayMessage(nominateResultDiv, result.mensaje || 'Entrada nominada con éxito.', false);
-        nominateTicketForm.reset(); // Limpiar formulario
-
-        // Actualizar visualmente la entrada en la lista de "Mis Entradas"
+        if (nominateTicketForm) nominateTicketForm.reset();
         updatePurchasedTicketStatus(formData.get('codigoQr'), 'Nominada');
-
     } catch (error) {
-        // Mostrar error específico de la API
         displayMessage(nominateResultDiv, `Error al nominar: ${error.message}`, true);
     } finally {
-        // Reactivar el botón
-        setButtonState(submitButton, false, 'Nominando...', 'Nominar Entrada');
+        submitButton.disabled = false; submitButton.textContent = 'Nominar Entrada';
     }
 }
 
+// --- Funciones para Mostrar Entradas Compradas ---
 
-// --- Funciones para Mostrar Entradas Compradas (Simulación) ---
+/**
+ * Genera la URL de datos Base64 para una imagen QR usando qrcode-generator.
+ * <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+ */
+async function generateQrDataUrl(text) {
+    if (typeof qrcode === 'undefined') {
+        console.error("Librería qrcode-generator no cargada.");
+        return null;
+    }
+    if (!text) return null;
+    try {
+        const qr = qrcode(0, 'M'); // typeNumber 0 (auto), errorCorrectionLevel 'M'
+        qr.addData(text);
+        qr.make();
+        // Ajustar cellSize (4) y margin (2) para tamaño y borde
+        const dataUrl = qr.createDataURL(4, 2);
+        return dataUrl;
+    } catch (error) {
+        console.error("Error generando imagen QR para:", text, error);
+        return null;
+    }
+}
 
 /** Renderiza las entradas guardadas en localStorage */
-function renderPurchasedTickets() {
-    myTicketsListDiv.innerHTML = ''; // Limpiar lista actual
+async function renderPurchasedTickets() {
+    if (!myTicketsListDiv || !myTicketsSection) return;
+
+    myTicketsListDiv.innerHTML = ''; // Limpiar antes de re-renderizar
     if (purchasedTickets.length === 0) {
-        myTicketsSection.style.display = 'none'; // Ocultar sección si no hay entradas
+        myTicketsSection.style.display = 'none';
         return;
     }
-    myTicketsSection.style.display = 'block'; // Mostrar sección
+    myTicketsSection.style.display = 'block';
 
-    // Iterar sobre las entradas compradas y crear elementos HTML
-    purchasedTickets.forEach((ticket) => {
-        const card = document.createElement('div');
-        // Usar clases de Tailwind para estilizar la tarjeta
-        card.className = 'ticket-card grid grid-cols-1 md:grid-cols-3 gap-4 items-center';
-
-        // Columna de detalles de la entrada
-        const detailsDiv = document.createElement('div');
-        detailsDiv.className = 'md:col-span-2'; // Ocupa 2 columnas en pantallas medianas+
-        detailsDiv.innerHTML = `
-            <p><strong class="font-medium">ID Entrada:</strong> ${ticket.idEntradaAsignada || 'N/A'}</p>
-            <p><strong class="font-medium">Tipo:</strong> ${ticket.tipoEntradaOriginal || 'N/A'}</p>
-            <p><strong class="font-medium">Código QR:</strong>
-               <input type="text" value="${ticket.codigoQr || 'N/A'}" readonly class="text-xs font-mono bg-gray-200 px-1 rounded border border-gray-300 w-full mt-1 cursor-pointer" title="Haz clic para copiar" onclick="this.select(); try{document.execCommand('copy'); alert('Código QR copiado!');}catch(e){alert('No se pudo copiar.');}">
-            </p>
-            <p><strong class="font-medium">Estado:</strong> ${ticket.estado || 'N/A'} <span class="text-blue-600 font-semibold">${ticket.statusVisual || ''}</span></p>
-            ${ticket.nombreAsistente ? `<p><strong class="font-medium">Nominada a:</strong> ${ticket.nombreAsistente} (${ticket.emailAsistente || 'email no disponible'})</p>` : '<p class="text-sm text-orange-600 italic">Pendiente de nominar</p>'}
-        `;
-
-        // Columna para la imagen QR
-        const qrDiv = document.createElement('div');
-        qrDiv.className = 'text-center md:text-right'; // Centrado en móvil, derecha en escritorio
-        if (ticket.qrCodeImageDataUrl) {
-            // Mostrar la imagen QR si la URL de datos está disponible
-            qrDiv.innerHTML = `<img src="${ticket.qrCodeImageDataUrl}" alt="QR Entrada ${ticket.idEntradaAsignada}" class="w-24 h-24 inline-block qr-image-display" width="96" height="96">`;
-        } else {
-            // Mensaje si no hay imagen QR
-            qrDiv.innerHTML = `<span class="text-xs text-gray-400 italic">(Imagen QR no disponible)</span>`;
+    // Usar Promise.all para asegurar que todos los QRs (si necesitan generarse) se completen
+    const ticketCardsHtmlPromises = purchasedTickets.map(async (ticket) => {
+        // Generar URL de imagen QR si no existe en el objeto local
+        if (!ticket.qrCodeImageDataUrl && ticket.codigoQr) {
+            console.log(`Generando QR para ${ticket.codigoQr} on demand...`);
+            ticket.qrCodeImageDataUrl = await generateQrDataUrl(ticket.codigoQr);
         }
 
-        // Añadir las columnas a la tarjeta y la tarjeta a la lista
-        card.appendChild(detailsDiv);
-        card.appendChild(qrDiv);
-        myTicketsListDiv.appendChild(card);
+        // Construir el HTML de la tarjeta para esta entrada
+        return `
+            <div class="ticket-card grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-b last:border-b-0 py-4">
+                <div class="md:col-span-2 space-y-1">
+                    <p><strong class="font-medium text-gray-800">ID Entrada:</strong> ${ticket.idEntradaAsignada || 'N/A'}</p>
+                    <p><strong class="font-medium text-gray-800">Tipo:</strong> ${ticket.tipoEntradaOriginal || 'N/A'}</p>
+                    <p><strong class="font-medium text-gray-800">Código QR:</strong>
+                       <input type="text" value="${ticket.codigoQr || 'N/A'}" readonly class="text-xs font-mono bg-gray-100 px-2 py-1 rounded border border-gray-300 w-full mt-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500" title="Haz clic para copiar" onclick="this.select(); try{document.execCommand('copy'); console.log('Código QR copiado!');}catch(e){console.error('No se pudo copiar el QR.');}">
+                    </p>
+                    <p><strong class="font-medium text-gray-800">Estado API:</strong> ${ticket.estado || 'N/A'} <span class="text-blue-600 font-semibold">${ticket.statusVisual || ''}</span></p>
+                    ${ticket.nombreAsistente ? `<p><strong class="font-medium text-gray-800">Nominada a:</strong> ${ticket.nombreAsistente} (${ticket.emailAsistente || 'email no disponible'})</p>` : '<p class="text-sm text-orange-600 italic">Pendiente de nominar</p>'}
+                </div>
+                <div class="text-center md:text-right">
+                    ${ticket.qrCodeImageDataUrl
+                ? `<img src="${ticket.qrCodeImageDataUrl}" alt="QR Entrada ${ticket.idEntradaAsignada}" class="w-24 h-24 inline-block border border-gray-300 p-1 bg-white qr-image-display" width="96" height="96">`
+                : `<span class="text-xs text-gray-400 italic">(No se pudo generar QR)</span>`
+            }
+                </div>
+            </div>
+        `;
     });
+
+    // Esperar a que todas las promesas HTML se resuelvan
+    const ticketCardsHtml = await Promise.all(ticketCardsHtmlPromises);
+
+    // Añadir todo el HTML generado al contenedor
+    myTicketsListDiv.innerHTML = ticketCardsHtml.join('');
+
 }
 
 
-/** Limpia las entradas de localStorage */
+/** Limpia las entradas guardadas localmente */
 function clearPurchasedTickets() {
-    if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación?')) {
-        purchasedTickets = []; // Vaciar array local
-        localStorage.removeItem('purchasedTickets'); // Limpiar localStorage
-        renderPurchasedTickets(); // Actualizar la vista
-        console.log('Entradas compradas (simulación) borradas.');
+    if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación? (Esto solo afecta a la visualización local)')) {
+        purchasedTickets = [];
+        localStorage.removeItem('purchasedTickets');
+        renderPurchasedTickets();
+        console.log('Entradas compradas (simulación) borradas del almacenamiento local.');
     }
 }
 
-/** Actualiza visualmente el estado de una entrada en la lista local (no persiste el estado visual) */
+/** Actualiza el estado visual temporal de una entrada */
 function updatePurchasedTicketStatus(qrCode, visualStatus) {
-    // Mapear el array para encontrar la entrada y añadir/actualizar 'statusVisual'
+    let found = false;
     purchasedTickets = purchasedTickets.map(ticket => {
         if (ticket.codigoQr === qrCode) {
-            // Añadimos un campo visual temporal, no modificamos el 'estado' real de la API
+            found = true;
             return { ...ticket, statusVisual: `(${visualStatus})` };
         }
-        return ticket; // Devolver las otras entradas sin cambios
+        return ticket;
     });
-    // No guardar este estado visual en localStorage, solo actualizar la vista
-    renderPurchasedTickets();
+    if (found) {
+        renderPurchasedTickets();
+        console.log(`Estado visual actualizado para QR ${qrCode} a ${visualStatus}`);
+    } else {
+        console.warn(`No se encontró la entrada con QR ${qrCode} para actualizar estado visual.`);
+    }
 }
 
 
 // --- Inicialización y Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar datos iniciales al cargar la página
+    console.log("DOM Cargado. Iniciando simulador de festival...");
     loadFestivalDetails();
     loadTicketTypes();
-    renderPurchasedTickets(); // Mostrar entradas previamente compradas (si existen en localStorage)
+    initializeStripe();
+    renderPurchasedTickets();
 
-    // Añadir listeners a los formularios y botones
-    if (buyTicketForm) buyTicketForm.addEventListener('submit', handleBuyTicket);
-    if (nominateTicketForm) nominateTicketForm.addEventListener('submit', handleNominateTicket);
-    if (clearTicketsButton) clearTicketsButton.addEventListener('click', clearPurchasedTickets);
+    // Listeners
+    if (paymentForm) { paymentForm.addEventListener('submit', handlePaymentSubmit); console.log("Listener añadido a paymentForm."); }
+    else { console.error("Error: No se encontró paymentForm."); }
+    if (nominateTicketForm) { nominateTicketForm.addEventListener('submit', handleNominateTicket); console.log("Listener añadido a nominateTicketForm."); }
+    else { console.warn("Elemento nominateTicketForm no encontrado."); }
+    if (clearTicketsButton) { clearTicketsButton.addEventListener('click', clearPurchasedTickets); console.log("Listener añadido a clearTicketsButton."); }
+    else { console.warn("Elemento clearTicketsButton no encontrado."); }
 });

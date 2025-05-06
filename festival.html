@@ -10,7 +10,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="estilos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        /* Estilos para Stripe Elements */
+        #card-element {
+            border: 1px solid #d1d5db;
+            /* border-gray-300 */
+            border-radius: 0.375rem;
+            /* rounded-md */
+            padding: 0.75rem;
+            /* p-3 */
+            background-color: white;
+        }
 
+        #card-errors {
+            color: #b91c1c;
+            /* text-red-700 */
+            font-size: 0.875rem;
+            /* text-sm */
+            margin-top: 0.5rem;
+            /* mt-2 */
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 text-gray-900 p-4 md:p-8">
@@ -38,8 +60,9 @@
 
         <div class="card">
             <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Comprar Entradas</h2>
-            <form id="buy-ticket-form">
+            <form id="payment-form">
                 <input type="hidden" id="buy-festival-id" name="idFestival" value="19">
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="buy-ticket-type">Tipo de Entrada:</label>
@@ -73,9 +96,18 @@
                     </div>
                 </div>
 
-                <button type="submit" class="button">Comprar Entradas</button>
+                <h3 class="text-lg font-medium mb-2 text-gray-700">Datos de Pago</h3>
+                <div id="card-element" class="mb-4">
+                </div>
+
+                <div id="card-errors" role="alert"></div>
+
+                <button id="submit-button" type="submit" class="button w-full mt-4">
+                    <span id="button-text">Pagar con Tarjeta</span>
+                    <span id="spinner" style="display: none;">Procesando...</span>
+                </button>
             </form>
-            <div id="buy-result" class="message-box mt-4" style="display: none;"></div>
+            <div id="payment-result" class="message-box mt-4" style="display: none;"></div>
         </div>
 
         <div id="my-tickets-section" class="card" style="display: none;">
@@ -96,7 +128,6 @@
                     <p class="text-xs text-gray-500 mt-1">Puedes copiar el código QR de la sección "Mis Entradas
                         Compradas".</p>
                 </div>
-
                 <h3 class="text-lg font-medium mb-2 text-gray-700">Datos del Nominado</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -115,7 +146,6 @@
                             placeholder="600112233">
                     </div>
                 </div>
-
                 <button type="submit" class="button">Nominar Entrada</button>
             </form>
             <div id="nominate-result" class="message-box mt-4" style="display: none;"></div>
