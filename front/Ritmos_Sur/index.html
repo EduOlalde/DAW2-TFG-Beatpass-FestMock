@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es" class="no-js">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ritmos Del Sur: Hyper-Oasis. Sumérgete en la experiencia definitiva de música Urbana y Latina. Vanguardia, Ritmo y Paraíso Digital.">
+    <title>RDS | Hyper-Oasis</title> <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon-rds-hyper.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Syne:wght@800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@next/dist/aos.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/basiclightbox@5.0.4/dist/basicLightbox.min.css" rel="stylesheet">
+    <script>document.documentElement.classList.replace('no-js', 'js');</script>
+</head>
+<body class="loading" data-theme="light">
+    <div id="loader">
+        <svg class="loader-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle class="loader-circle-bg" cx="50" cy="50" r="45"/>
+            <circle class="loader-circle-fg" cx="50" cy="50" r="45"/>
+        </svg>
+        <div class="loader-text">CARGANDO OASIS...</div> </div>
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <header id="main-header" class="main-header">
+        <div class="container header-content">
+            <a href="#hero" class="logo" aria-label="Ritmos Del Sur Inicio">
+                 <span class="logo-r">R</span><span class="logo-d">D</span><span class="logo-s">S</span>
+            </a>
+            <nav class="main-nav">
+                 <button id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">
+                    <span></span><span></span><span></span>
+                </button>
+                <ul id="nav-menu">
+                    <li><a href="#lineup" class="nav-link"><span data-text="Lineup">Lineup</span></a></li>
+                    <li><a href="#tickets" class="nav-link"><span data-text="Tickets">Tickets</span></a></li>
+                    <li><a href="#experience" class="nav-link"><span data-text="Experiencia">Experiencia</span></a></li>
+                    <li><a href="#location" class="nav-link"><span data-text="Lugar">Lugar</span></a></li>
+                    <li><a href="#connect" class="nav-link"><span data-text="Conecta">Conecta</span></a></li>
+                </ul>
+            </nav>
+             <div class="header-controls">
+                 <button id="theme-toggle" aria-label="Cambiar tema">
+                     <svg class="sun-icon" fill="currentColor" viewBox="0 0 24 24" width="20px" height="20px"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM12 9c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zm0-7h-1v3h1V2zm0 18h-1v3h1v-3zm-8.71.29l-2.12-2.12 1.41-1.41 2.12 2.12-1.41 1.41zm14.14-14.14l2.12 2.12-1.41 1.41-2.12-2.12 1.41-1.41zM4.93 4.93l-2.12 2.12 1.41 1.41 2.12-2.12-1.41-1.41zm14.14 14.14l2.12-2.12-1.41-1.41-2.12 2.12 1.41 1.41zM2 11H-1v2h3v-2zm18 0h3v2h-3v-2z"/></svg>
+                     <svg class="moon-icon" fill="currentColor" viewBox="0 0 24 24" width="20px" height="20px"><path d="M12.3 4.88c.18.04.35.1.51.18.08.04.15.09.22.14.58.38 1.03.9 1.31 1.51.29.61.38 1.28.28 1.94-.11.71-.43 1.37-.93 1.91-.5.54-1.16.96-1.87 1.07-.67.11-1.36.02-2-.28-.64-.3-1.19-.78-1.58-1.37-.4-.59-.62-1.28-.62-1.99 0-.95.38-1.85 1.05-2.52s1.57-1.05 2.52-1.05c.02 0 .04 0 .06 0zm3.19 8.85c-1.48 1.48-3.48 2.36-5.59 2.36-1.98 0-3.85-.77-5.31-2.19C3.11 12.43 3 10.53 3.77 8.89c.75-1.6 2.18-2.77 3.92-3.3.16-.05.32-.08.49-.1.66-.09 1.32.03 1.9.31.58.28 1.09.72 1.47 1.27.38.55.61 1.18.66 1.84.05.61-.08 1.23-.38 1.79-.3.56-.76 1.02-1.32 1.32-.56.3-.98.43-1.26.41-.15-.01-.3-.04-.44-.09-.68-.23-1.28-.65-1.73-1.2-.44-.55-.7-1.21-.7-1.91 0-.18.01-.36.04-.54.03-.18.08-.35.15-.52s.16-.33.26-.48c.21-.31.48-.56.8-.75.32-.19.68-.3 1.06-.3s.76.11 1.09.33c.33.22.58.52.75.88.17.36.26.75.26 1.15 0 .57-.15 1.12-.43 1.61-.28.49-.66.9-1.13 1.19-.47.29-1 .44-1.55.44-.79 0-1.53-.23-2.16-.67-.63-.44-1.14-1.03-1.45-1.74-.31-.71-.43-1.49-.33-2.28.1-.79.46-1.52 1.03-2.12.57-.6 1.28-1.03 2.1-1.27.82-.24 1.69-.27 2.53-.08.84.19 1.6.63 2.18 1.27.58.64.98 1.43 1.14 2.29.16.86.09 1.74-.21 2.56-.3.82-.82 1.54-1.51 2.08z"/></svg>
+                 </button>
+                <a href="#tickets" class="cta-button header-cta">
+                    <span>Entradas</span>
+                 </a>
+             </div>
+        </div>
+    </header>
+
+    <div id="error-container" style="display: none; padding: 15px; margin: 15px auto; background-color: #ffebee; color: #c62828; border: 1px solid #c62828; border-radius: 8px; text-align: center; font-weight: bold; max-width: 90%; width: fit-content;">
+        </div>
+
+    <div class="page-wrapper">
+        <main id="page-content">
+            <section id="hero" class="hero-section">
+                <div class="hero-bg-layer layer-1" data-speed="-0.05"></div>
+                <div class="hero-bg-layer layer-2" data-speed="0.05"></div>
+
+                <div class="container hero-content-container">
+                     <h1 class="main-title">
+                        <span class="title-line" data-aos="hero-title-anim" id="festival-name-line1">Cargando...</span>
+                        <span class="title-line" data-aos="hero-title-anim" data-aos-delay="150" id="festival-name-line2"></span>
+                    </h1>
+                    <p class="subtitle" data-aos="fade-up" data-aos-delay="400" id="festival-subtitle"></p>
+                    <p class="dates" data-aos="fade-up" data-aos-delay="550" id="festival-dates-location"></p>
+                     <div class="hero-cta-group" data-aos="fade-up" data-aos-delay="700">
+                        <a href="#tickets" class="cta-button large"><span>¡Consigue Entradas!</span></a>
+                        <a href="#lineup" class="cta-button secondary"><span>Ver Lineup</span></a>
+                    </div>
+                </div>
+                 <a href="#lineup" class="scroll-indicator" aria-label="Scroll down">
+                     <span class="scroll-wheel"></span>
+                </a>
+            </section>
+
+            <section id="lineup" class="lineup-section section-dark">
+                <div class="container-fluid">
+                    <h2 class="section-title alt centered" data-aos="fade-up">Lineup Estelar</h2>
+                    <div class="artist-carousel-wrapper">
+                         <div class="artist-carousel-css" data-aos="fade-up" data-aos-delay="200">
+                             <div class="artist-slide">
+                                 <div class="artist-image-wrapper"><img src="/imagenes/artistas/bad.jpeg" alt="Bad Gyal"></div>
+                                 <div class="artist-details"><h3>Bad Gyal</h3><p>Dancehall / Reggaeton / Trap</p><span class="stage-tag oasis">Oasis Stage</span></div>
+                             </div>
+                             <div class="artist-slide">
+                                <div class="artist-image-wrapper"><img src="/imagenes/artistas/quevedo.jpg" alt="Quevedo"></div>
+                                <div class="artist-details"><h3>Quevedo</h3><p>Reggaeton / Trap Latino / Pop</p><span class="stage-tag oasis">Oasis Stage</span></div>
+                             </div>
+                             <div class="artist-slide">
+                                <div class="artist-image-wrapper"><img src="/imagenes/artistas/myke.jpg" alt="Myke Towers"></div>
+                                <div class="artist-details"><h3>Myke Towers</h3><p>Trap Latino / Reggaeton</p><span class="stage-tag terraza">Terraza Digital</span></div>
+                             </div>
+                             <div class="artist-slide">
+                                 <div class="artist-image-wrapper"><img src="/imagenes/artistas/saiko.jpg" alt="Saiko"></div>
+                                <div class="artist-details"><h3>Saiko</h3><p>Urbano / Pop / Reggaeton</p><span class="stage-tag jungla">Jungla Sonora</span></div>
+                             </div>
+                             <div class="artist-slide">
+                                <div class="artist-image-wrapper"><img src="/imagenes/artistas/lola.jpeg" alt="Lola Indigo"></div>
+                                <div class="artist-details"><h3>Lola Indigo</h3><p>Pop / Dance / Urbano</p><span class="stage-tag oasis">Oasis Stage</span></div>
+                             </div>
+                              <div class="artist-slide">
+                                 <div class="artist-image-wrapper"><img src="/imagenes/artistas/ptazeta.webp" alt="Ptazeta"></div>
+                                 <div class="artist-details"><h3>Ptazeta</h3><p>Rap / Trap / Urbano</p><span class="stage-tag terraza">Terraza Digital</span></div>
+                             </div>
+                             <div class="artist-slide">
+                                 <div class="artist-image-wrapper"><img src="/imagenes/artistas/villano.jpeg" alt="Villano Antillano"></div>
+                                 <div class="artist-details"><h3>Villano Antillano</h3><p>Trap / Rap Queer</p><span class="stage-tag jungla">Jungla Sonora</span></div>
+                             </div>
+                              <div class="artist-slide">
+                                 <div class="artist-image-wrapper"><img src="/imagenes/artistas/tokischa.jpg" alt="Tokischa"></div>
+                                 <div class="artist-details"><h3>Tokischa</h3><p>Dembow / Trap / Experimental</p><span class="stage-tag terraza">Terraza Digital</span></div>
+                             </div>
+                         </div>
+                         <div class="scroll-hint"><span>Desliza para explorar</span> <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m13.292 17.294l-4.585-4.587a1.502 1.502 0 0 1 0-2.121l4.585-4.587a1 1 0 1 1 1.414 1.414L10.414 12l4.292 4.293a1 1 0 0 1-1.414 1.414z"></path></svg></div>
+                     </div>
+                     <div class="lineup-full-link" data-aos="fade-up">
+                         <a href="#" class="cta-button secondary"><span>Ver Cartel Completo & Horarios</span></a>
+                     </div>
+                </div>
+            </section>
+
+            <section id="tickets" class="tickets-section section-light">
+                 <div class="container">
+                     <h2 class="section-title dark centered" data-aos="fade-up">Asegura tu Portal al Oasis</h2>
+                    <div class="ticket-grid" id="ticket-grid">
+                         <p id="tickets-loading" class="text-center" style="grid-column: 1 / -1;">Cargando tipos de entrada...</p>
+                         </div>
+                     <p class="ticket-disclaimer" data-aos="fade-up">(*) Acceso limitado y sujeto a disponibilidad. Entradas diarias próximamente.</p>
+                </div>
+            </section>
+
+            <section id="experience" class="experience-section section-dark">
+                <div class="container">
+                    <h2 class="section-title alt centered" data-aos="fade-up">Experiencia Hyper-Oasis</h2>
+                    <div class="experience-layout">
+                        <div class="experience-column left-column">
+                            <div class="experience-text-block" data-aos="fade-right">
+                                <h3>Más Allá de la Música</h3>
+                                <p>Ritmos del Sur es más que un festival; es una inmersión total en un universo donde la vibración latina y urbana se fusiona con la vanguardia digital. Prepárate para perderte entre instalaciones de arte interactivo que reaccionan a tu pulso, zonas de descanso con proyecciones generativas y experiencias de realidad aumentada que transforman el recinto.</p>
+                            </div>
+                            <div class="experience-visual-item small" data-aos="slide-up" data-aos-delay="200">
+                                <img src="/imagenes/gastro.jpeg" alt="Zona de comida futurista con puestos de fusión latina y pantallas digitales." class="experience-item-image">
+                                <div class="item-content"><h4>Gastro Fusión Tech</h4></div>
+                            </div>
+                            <div class="experience-visual-item large" data-aos="slide-up" data-aos-delay="300">
+                                <img src="/imagenes/art.jpeg" alt="Instalación de arte de luz interactiva con elementos de realidad aumentada flotando alrededor." class="experience-item-image">
+                                 <div class="item-content"><h4>Instalaciones ARt</h4></div>
+                            </div>
+                        </div>
+                        <div class="experience-column right-column">
+                            <div class="experience-visual-item large" data-aos="slide-up" data-aos-delay="400">
+                                <img src="/imagenes/gaming&flow.jpeg" alt="Zona de videojuegos con luces neón, consolas y gente jugando y bailando." class="experience-item-image">
+                                <div class="item-content"><h4>Gaming & Flow Zone</h4></div>
+                            </div>
+                            <div class="experience-visual-item small" data-aos="slide-up" data-aos-delay="500">
+                                <img src="/imagenes/mercado.jpeg" alt="Mercado con puestos modernos que mezclan moda física y elementos digitales." class="experience-item-image">
+                                <div class="item-content dark-text"><h4>Mercado Phygital</h4></div>
+                            </div>
+                             <div class="experience-text-block align-right" data-aos="fade-left" data-aos-delay="600">
+                                <h3>Tu Flow, Tu Espacio</h3>
+                                <p>Explora nuestro mercado 'phygital' con moda y arte exclusivos, participa en workshops de baile y producción musical, o desafía a tus amigos en la Gaming Zone. La Silent Disco te espera bajo las estrellas digitales. En RDS, tú diseñas tu propia aventura.</p>
+                                 <a href="#" class="cta-button secondary"><span>Descubre Más</span></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+           </section>
+
+           <section id="location" class="location-section section-light">
+            <div class="container location-container">
+                 <div class="location-text-content" data-aos="fade-right">
+                     <h2 class="section-title dark" id="location-city">SEVILLA:<br>TU OASIS URBANO</h2>
+                     <p id="location-description">El festival toma vida en el emblemático Estadio Olímpico de Sevilla, un espacio icónico transformado en un portal hacia el Hyper-Oasis. Perfectamente comunicado con el centro de la ciudad y el aeropuerto mediante transporte público (Metro, Bus) y con amplias zonas de aparcamiento.</p>
+                     <p>Aprovecha para sumergirte en el encanto de Sevilla: explora el Alcázar, piérdete por el Barrio de Santa Cruz, disfruta de unas tapas junto al Guadalquivir y vive la pasión de una ciudad que vibra al ritmo del sur.</p>
+                     <div class="location-buttons">
+                         <a href="https://www.google.com/maps/place/Estadio+Ol%C3%ADmpico+de+La+Cartuja" target="_blank" rel="noopener noreferrer" class="cta-button">Ver en Mapa Completo</a>
+                         <a href="https://www.visitasevilla.es/" target="_blank" rel="noopener noreferrer" class="cta-button secondary">Explora Sevilla</a>
+                     </div>
+                 </div>
+                 <div class="location-map-placeholder" data-aos="fade-left" data-aos-delay="200">
+                     <iframe
+                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3168.946869623044!2d-6.006139323687908!3d37.41411103157609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd12145f61a66691%3A0x37f5a58a5933a87!2sEstadio%20Ol%C3%ADmpico%20de%20La%20Cartuja!5e0!3m2!1ses!2ses!4v1715113656143!5m2!1ses!2ses"
+                         style="border:0;"
+                         allowfullscreen=""
+                         loading="lazy"
+                         referrerpolicy="no-referrer-when-downgrade"
+                         title="Mapa de ubicación del Estadio Olímpico de Sevilla">
+                     </iframe>
+                 </div>
+            </div>
+        </section>
+
+            <section id="connect" class="connect-section section-gradient">
+                <div class="container connect-container">
+                     <div class="connect-text" data-aos="zoom-in">
+                         <h2 class="section-title alt">#RDS_HyperOasis</h2>
+                         <p class="section-subtitle alt">Sigue el pulso del festival en tiempo real. Comparte tus momentos, conecta con otros asistentes y sé parte de la comunidad digital que define el futuro del ritmo.</p>
+                         <div class="social-icons-large">
+                            <a href="#" target="_blank" aria-label="Instagram">IG</a>
+                            <a href="#" target="_blank" aria-label="TikTok">TK</a>
+                            <a href="#" target="_blank" aria-label="Spotify">SP</a>
+                            <a href="#" target="_blank" aria-label="Youtube">YT</a>
+                            <a href="#" target="_blank" aria-label="Twitter">TW</a>
+                         </div>
+                     </div>
+                     <div class="connect-visual" data-aos="zoom-in-left" data-aos-delay="300">
+                         <div class="visual-placeholder">#RDS_HyperOasis Feed</div>
+                     </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer id="main-footer" class="section-dark">
+         <div class="container footer-container">
+             <div class="footer-column about">
+                 <h4 class="footer-title">Ritmos Del Sur</h4>
+                 <p>El Oasis Digital de la música Urbana y Latina. Estadio Olímpico, Sevilla.</p>
+                  <a href="#" class="footer-link">Sobre Nosotros</a> |
+                  <a href="#" class="footer-link">Prensa</a>
+             </div>
+             <div class="footer-column links">
+                <h4 class="footer-title">Explora</h4>
+                <ul>
+                    <li><a href="#lineup" class="footer-link">Artistas</a></li>
+                    <li><a href="#tickets" class="footer-link">Entradas</a></li>
+                    <li><a href="#experience" class="footer-link">Experiencia</a></li>
+                     <li><a href="#" class="footer-link">Sostenibilidad</a></li>
+                     <li><a href="#" class="footer-link">FAQ</a></li>
+                </ul>
+            </div>
+             <div class="footer-column connect">
+                 <h4 class="footer-title">Conecta</h4>
+                 <div class="footer-social-icons">
+                     <a href="#" target="_blank" aria-label="Instagram">ig</a>
+                    <a href="#" target="_blank" aria-label="TikTok">tk</a>
+                    <a href="#" target="_blank" aria-label="Spotify">sp</a>
+                    <a href="#" target="_blank" aria-label="Youtube">yt</a>
+                 </div>
+                  <a href="#" class="footer-link newsletter-link">Suscríbete al Newsletter</a>
+            </div>
+             <div class="footer-column legal">
+                 <h4 class="footer-title">Legal</h4>
+                 <ul>
+                    <li><a href="#" class="footer-link">Aviso Legal</a></li>
+                    <li><a href="#" class="footer-link">Privacidad</a></li>
+                    <li><a href="#" class="footer-link">Cookies</a></li>
+                    <li><a href="#" class="footer-link">Condiciones Venta</a></li>
+                 </ul>
+             </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Ritmos Del Sur. Pulsando al ritmo digital.</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/basiclightbox@5.0.4/dist/basicLightbox.min.js"></script>
+    <script src="script.js"></script> </body>
+</html>

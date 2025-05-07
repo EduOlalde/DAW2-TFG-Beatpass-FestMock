@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Luna Negra Fest: 25-27 Octubre. El ritual de Rock y Metal definitivo en las Calderas Ancestrales de Isla Cinder. Siente el poder. Compra tu abono.">
+    <title>LUNA NEGRA FEST | El Ritual Sónico Definitivo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="loader">
+        <div class="loader-symbol"></div> <p>Forjando la Oscuridad...</p>
+    </div>
+
+    <header id="main-header">
+        <div class="container header-content">
+            <a href="#" class="logo" aria-label="Luna Negra Fest Inicio">
+                LN FST
+            </a>
+            <nav class="main-nav">
+                 <button id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <ul id="nav-menu">
+                    <li><a href="#lineup" class="nav-link">Linaje Sónico</a></li>
+                    <li><a href="#tickets" class="nav-link">Pactos de Sangre</a></li>
+                    <li><a href="#experience" class="nav-link">El Ritual</a></li>
+                    <li><a href="#location" class="nav-link">Isla Cinder</a></li>
+                    <li><a href="#gallery" class="nav-link">Ecos Visuales</a></li>
+                </ul>
+            </nav>
+            <a href="#tickets" class="cta-button pulse">Consigue tu Pacto</a>
+        </div>
+    </header>
+
+    <main id="page-content">
+        <section id="hero" class="hero-section">
+             <div class="video-background">
+                <video playsinline autoplay muted loop poster="images/hero-poster.jpg" id="bgvid">
+                    <source src="videos/luna-negra-loop.webm" type="video/webm">
+                    <source src="videos/luna-negra-loop.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="container hero-content-container">
+                <h1 class="main-title" data-aos="fade-up">LUNA NEGRA FEST</h1>
+                <p class="subtitle" data-aos="fade-up" data-aos-delay="200">El Ritual Sónico Definitivo</p>
+                <p class="dates" data-aos="fade-up" data-aos-delay="400">25-27 OCTUBRE 2025 | ISLA CINDER</p>
+                <a href="#lineup" class="scroll-down-link" aria-label="Ver cartel" data-aos="fade-up" data-aos-delay="600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48px" height="48px"><path d="M12 16.5l-6-6 1.41-1.41L12 13.67l4.59-4.58L18 10.5z"/></svg>
+                </a>
+            </div>
+        </section>
+
+        <section id="lineup" class="lineup-section section-dark">
+            <div class="container">
+                <h2 class="section-title" data-aos="fade-right">Linaje Sónico</h2>
+                <div class="stage-tabs" data-aos="fade-up">
+                    <button class="tab-button active" data-stage="all">Todos los Ecos</button>
+                    <button class="tab-button" data-stage="crater">Cráter Stage</button>
+                    <button class="tab-button" data-stage="cinder">Cinder Fields</button>
+                    <button class="tab-button" data-stage="eclipse">Eclipse Temple</button>
+                </div>
+                <div class="artist-grid">
+                    <div class="artist-card" data-stage="crater" data-aos="zoom-in">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/111/ff4500?text=Obsidian+Throne" alt="Obsidian Throne">
+                           <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Obsidian Throne">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Obsidian Throne</h3>
+                            <p>Viernes | 23:00 | Cráter Stage</p>
+                        </div>
+                    </div>
+                     <div class="artist-card" data-stage="cinder" data-aos="zoom-in" data-aos-delay="100">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/222/dc143c?text=Crimson+Kult" alt="Crimson Kult">
+                            <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Crimson Kult">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Crimson Kult</h3>
+                            <p>Sábado | 21:30 | Cinder Fields</p>
+                        </div>
+                    </div>
+                    <div class="artist-card" data-stage="eclipse" data-aos="zoom-in" data-aos-delay="200">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/000/8b0000?text=Serpent's+Kiss" alt="Serpent's Kiss">
+                            <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Serpent's Kiss">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Serpent's Kiss</h3>
+                            <p>Domingo | 19:00 | Eclipse Temple</p>
+                        </div>
+                    </div>
+                     <div class="artist-card" data-stage="crater" data-aos="zoom-in" data-aos-delay="300">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/333/ffa500?text=Magma+Lord" alt="Magma Lord">
+                            <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Magma Lord">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Magma Lord</h3>
+                            <p>Sábado | 22:00 | Cráter Stage</p>
+                        </div>
+                    </div>
+                     <div class="artist-card" data-stage="cinder" data-aos="zoom-in" data-aos-delay="400">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/1a1a1a/483d8b?text=Voidreaver" alt="Voidreaver">
+                           <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Voidreaver">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Voidreaver</h3>
+                            <p>Viernes | 20:00 | Cinder Fields</p>
+                        </div>
+                    </div>
+                     <div class="artist-card" data-stage="eclipse" data-aos="zoom-in" data-aos-delay="500">
+                        <div class="artist-image">
+                           <img src="https://via.placeholder.com/400x400/0a0a0a/7fff00?text=Iron+Witch" alt="Iron Witch">
+                           <div class="artist-overlay">
+                               <a href="#" class="listen-link" aria-label="Escuchar a Iron Witch">▶ Escuchar</a>
+                           </div>
+                        </div>
+                        <div class="artist-info">
+                            <h3>Iron Witch</h3>
+                            <p>Sábado | 18:00 | Eclipse Temple</p>
+                        </div>
+                    </div>
+                    </div>
+                 <div class="lineup-announcement" data-aos="fade-up">
+                    <p>+ Headliner Final y 20 bandas más serán desveladas con la próxima luna de sangre...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tickets" class="tickets-section section-accent">
+            <div class="container">
+                <h2 class="section-title alt" data-aos="fade-left">Pactos de Sangre</h2>
+                 <p class="section-subtitle" data-aos="fade-left" data-aos-delay="100">Sella tu destino. Asegura tu lugar en el ritual.</p>
+                <div class="ticket-grid">
+                    <div class="ticket-card" data-aos="fade-up">
+                        <div class="ticket-header">
+                            <h3>PACTO ECLIPSE</h3>
+                            <p>(Abono General)</p>
+                        </div>
+                        <div class="ticket-price">€95 <span class="price-note">+ gastos</span></div>
+                        <ul class="ticket-features">
+                            <li>Acceso 3 Días al Ritual</li>
+                            <li>Libre Deambular por Isla Cinder</li>
+                            <li>Acceso a Cráter, Cinder y Eclipse Stages</li>
+                            <li>Pulsera Recargable "Marca Negra"</li>
+                        </ul>
+                        <a href="#" class="cta-button ticket-buy">Forjar Pacto Eclipse</a>
+                    </div>
+                    <div class="ticket-card vip" data-aos="fade-up" data-aos-delay="200">
+                         <div class="ticket-header">
+                            <h3>PACTO MAGMA</h3>
+                            <p>(Abono VIP)</p>
+                        </div>
+                        <div class="ticket-price">€190 <span class="price-note">+ gastos</span></div>
+                        <ul class="ticket-features">
+                             <li>Acceso 3 Días al Ritual</li>
+                            <li>Acceso Preferente a Isla Cinder</li>
+                            <li>Zonas Elevadas VIP "El Mirador del Caos"</li>
+                            <li>Barras y Baños Premium</li>
+                             <li>Pack de Bienvenida "Reliquias del Volcán"</li>
+                            <li>Pulsera Recargable "Corazón de Magma"</li>
+                        </ul>
+                        <a href="#" class="cta-button ticket-buy vip-buy">Forjar Pacto Magma</a>
+                    </div>
+                     <div class="ticket-card daily" data-aos="fade-up" data-aos-delay="400">
+                         <div class="ticket-header">
+                            <h3>ENTRADA DE DÍA</h3>
+                             <p>(Vie, Sáb o Dom)</p>
+                        </div>
+                        <div class="ticket-price">€60 <span class="price-note">+ gastos</span></div>
+                        <ul class="ticket-features">
+                            <li>Acceso 1 Día al Ritual (a elegir)</li>
+                             <li>Acceso a Cráter, Cinder y Eclipse Stages</li>
+                             <li>Opción de Pulsera Recargable</li>
+                             <li>Vive la intensidad de una jornada</li>
+                        </ul>
+                        <a href="#" class="cta-button ticket-buy daily-buy">Elegir tu Día</a>
+                    </div>
+                </div>
+                 <div class="ticket-info-extra" data-aos="fade-up">
+                    <p>Todas las entradas incluyen el transporte marítimo ritual a Isla Cinder desde Puerto Ébano (Cádiz - ficticio).</p>
+                    <p>Plazas de acampada "Bajo la Ceniza" disponibles como extra.</p>
+                </div>
+            </div>
+        </section>
+
+         <section id="experience" class="experience-section section-dark">
+             <div class="container">
+                <h2 class="section-title" data-aos="fade-right">El Ritual</h2>
+                 <p class="section-subtitle" data-aos="fade-right" data-aos-delay="100">Más que música. Una inmersión total.</p>
+                <div class="experience-grid">
+                    <div class="experience-item" data-aos="fade-up">
+                        <div class="experience-icon">🌋</div> <h3>Energía Volcánica</h3>
+                        <p>Siente el poder ancestral de Isla Cinder. Paisajes lunares, arenas negras y la energía primigenia bajo tus pies.</p>
+                    </div>
+                    <div class="experience-item" data-aos="fade-up" data-aos-delay="150">
+                        <div class="experience-icon">🌑</div>
+                        <h3>Eclipse Eterno</h3>
+                        <p>Sumérgete en una atmósfera única bajo la (simulada) sombra perpetua de la Luna Negra. Iluminación y proyecciones inmersivas.</p>
+                    </div>
+                    <div class="experience-item" data-aos="fade-up" data-aos-delay="300">
+                         <div class="experience-icon">🔥</div>
+                        <h3>Shows de Fuego</h3>
+                        <p>Performances ardientes que acompañan los clímax musicales. Danzas rituales con fuego al caer la noche.</p>
+                    </div>
+                    <div class="experience-item" data-aos="fade-up" data-aos-delay="450">
+                         <div class="experience-icon">🍻</div>
+                        <h3>Manjares Oscuros</h3>
+                        <p>Zonas gastronómicas con comida potente y bebida artesanal local (Hidromiel "Lágrima de Obsidiana", Cerveza "Ceniza Stout").</p>
+                    </div>
+                     <div class="experience-item" data-aos="fade-up" data-aos-delay="600">
+                         <div class="experience-icon">⛺</div>
+                        <h3>Acampada Mística</h3>
+                        <p>Descansa bajo las estrellas (y la Luna Negra) en la zona de acampada "Bajo la Ceniza". Servicios completos y seguridad.</p>
+                    </div>
+                     <div class="experience-item" data-aos="fade-up" data-aos-delay="750">
+                         <div class="experience-icon">✨</div>
+                        <h3>Mercado Arcano</h3>
+                        <p>Encuentra merchandising oficial, artesanía oscura, vinilos raros y artefactos únicos en nuestro mercado.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="location" class="location-section section-light">
+            <div class="container">
+                 <h2 class="section-title dark" data-aos="fade-left">Isla Cinder</h2>
+                  <p class="section-subtitle dark" data-aos="fade-left" data-aos-delay="100">El Santuario del Sonido Primigenio.</p>
+                 <div class="location-content">
+                    <div class="location-text" data-aos="fade-right">
+                        <p>Accesible únicamente mediante nuestros transbordadores rituales desde Puerto Ébano (Costa de la Luz, Cádiz), Isla Cinder es una maravilla volcánica natural (y ficticia).</p>
+                        <p>Las Calderas Ancestrales, formadas por eones de actividad geotérmica, crean una acústica natural incomparable. Prepárate para ser transportado.</p>
+                        <ul>
+                            <li><i class="icon">📍</i> Ubicación: Latitud Prohibida, Longitud Olvidada (Aguas Atlánticas)</li>
+                            <li><i class="icon">🚢</i> Acceso: Ferry Ritual desde Puerto Ébano (Incluido en abono)</li>
+                            <li><i class="icon">🌿</i> Entorno: Protegido y Respetado. Normas estrictas de conservación.</li>
+                        </ul>
+                         <a href="#" class="cta-button secondary">Explorar Mapa Interactivo (Próximamente)</a>
+                    </div>
+                    <div class="location-image" data-aos="fade-left" data-aos-delay="200">
+                        <img src="https://via.placeholder.com/600x400/ccc/000?text=Mapa+Estilizado+Isla+Cinder" alt="Mapa de Isla Cinder">
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+         <section id="gallery" class="gallery-section section-dark">
+            <div class="container">
+                <h2 class="section-title" data-aos="fade-right">Ecos Visuales</h2>
+                 <p class="section-subtitle" data-aos="fade-right" data-aos-delay="100">Fragmentos de rituales pasados (Imágenes de ejemplo).</p>
+                <div class="gallery-grid">
+                     <a href="images/gallery/full/1.jpg" class="gallery-item" data-aos="zoom-in-up">
+                        <img src="https://via.placeholder.com/400x300/111/ff4500?text=Show+Nocturno" alt="Show nocturno en Luna Negra Fest">
+                        <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     <a href="images/gallery/full/2.jpg" class="gallery-item" data-aos="zoom-in-up" data-aos-delay="100">
+                        <img src="https://via.placeholder.com/400x300/222/ffffff?text=Público+en+Éxtasis" alt="Público en Luna Negra Fest">
+                         <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     <a href="images/gallery/full/3.jpg" class="gallery-item" data-aos="zoom-in-up" data-aos-delay="200">
+                        <img src="https://via.placeholder.com/400x300/000/ffa500?text=Paisaje+Isla+Cinder" alt="Paisaje de Isla Cinder">
+                         <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     <a href="images/gallery/full/4.jpg" class="gallery-item" data-aos="zoom-in-up" data-aos-delay="300">
+                        <img src="https://via.placeholder.com/400x300/333/dc143c?text=Detalle+Escenario" alt="Detalle escenario Luna Negra Fest">
+                         <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     <a href="images/gallery/full/5.jpg" class="gallery-item" data-aos="zoom-in-up" data-aos-delay="400">
+                        <img src="https://via.placeholder.com/400x300/1a1a1a/7fff00?text=Atmósfera+Nocturna" alt="Atmósfera nocturna Luna Negra Fest">
+                         <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     <a href="images/gallery/full/6.jpg" class="gallery-item" data-aos="zoom-in-up" data-aos-delay="500">
+                        <img src="https://via.placeholder.com/400x300/0a0a0a/fdd835?text=Ritual+de+Fuego" alt="Ritual de fuego Luna Negra Fest">
+                         <div class="gallery-overlay"><span>Ver</span></div>
+                    </a>
+                     </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="main-footer" class="section-dark">
+        <div class="container footer-container">
+            <div class="footer-logo">
+                LN FST
+                <span>Luna Negra Fest</span>
+            </div>
+            <div class="footer-nav">
+                <h4>Navega la Oscuridad</h4>
+                <ul>
+                    <li><a href="#lineup">Linaje Sónico</a></li>
+                    <li><a href="#tickets">Pactos de Sangre</a></li>
+                    <li><a href="#experience">El Ritual</a></li>
+                    <li><a href="#location">Isla Cinder</a></li>
+                     <li><a href="#">FAQ</a></li>
+                      <li><a href="#">Prensa</a></li>
+                </ul>
+            </div>
+             <div class="footer-social">
+                 <h4>Únete al Kulto</h4>
+                <div class="social-icons">
+                    <a href="#" target="_blank" aria-label="Instagram"><svg>...</svg>Insta</a> <a href="#" target="_blank" aria-label="Facebook"><svg>...</svg>Face</a>
+                    <a href="#" target="_blank" aria-label="Twitter"><svg>...</svg>Twit</a>
+                    <a href="#" target="_blank" aria-label="Youtube"><svg>...</svg>Tube</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <h4>Suscríbete a las Sombras</h4>
+                <form id="newsletter-form">
+                    <input type="email" placeholder="Tu email arcano..." required>
+                    <button type="submit" class="cta-button small">Suscribir</button>
+                </form>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Luna Negra Fest. Forjado en fuego y sombras. | <a href="#">Aviso Legal</a> | <a href="#">Política de Cookies</a></p>
+        </div>
+    </footer>
+
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/basiclightbox@5.0.4/dist/basicLightbox.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/basiclightbox@5.0.4/dist/basicLightbox.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
