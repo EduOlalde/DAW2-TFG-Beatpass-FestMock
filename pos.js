@@ -1,304 +1,333 @@
-// Definir la URL base de la API (¡Ajusta si es necesario!)
-const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api';
-let jwtToken = null; // Variable global para almacenar el token JWT
+const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
+//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para desarrollo local
+let tokenJwt = null; // Variable global para almacenar el token JWT
 
-// --- Obtener Elementos del DOM ---
-const loginForm = document.getElementById('loginForm');
-const loginStatus = document.getElementById('loginStatus');
-const logoutButton = document.getElementById('logoutButton');
-const posOperationsDiv = document.getElementById('posOperations');
-const resultArea = document.getElementById('resultArea');
-const checkBalanceForm = document.getElementById('checkBalanceForm');
-const rechargeForm = document.getElementById('rechargeForm');
-const consumeForm = document.getElementById('consumeForm');
-const posFestivalIdInput = document.getElementById('posFestivalId'); 
-const consumeFestivalIdHiddenInput = document.getElementById('consumeFestivalId'); // Input oculto en form consumo
+// --- Selectores del DOM ---
+const formularioLogin = document.getElementById('loginForm');
+const estadoLogin = document.getElementById('loginStatus');
+const botonCerrarSesion = document.getElementById('logoutButton');
+const divOperacionesTPV = document.getElementById('posOperations');
+const areaResultadoGeneral = document.getElementById('resultArea'); // Renombrado para mayor claridad
+const formularioConsultarSaldo = document.getElementById('checkBalanceForm');
+const formularioRecarga = document.getElementById('rechargeForm');
+const formularioConsumo = document.getElementById('consumeForm');
+const entradaIdFestivalTPV = document.getElementById('posFestivalId');
+const entradaOcultaIdFestivalConsumo = document.getElementById('consumeFestivalId');
 
-// Referencias a los divs de resultados específicos
-const consultaResultDiv = document.getElementById('consultaResult');
-const recargaResultDiv = document.getElementById('recargaResult');
-const consumoResultDiv = document.getElementById('consumoResult');
+const divResultadoConsulta = document.getElementById('consultaResult');
+const divResultadoRecarga = document.getElementById('recargaResult');
+const divResultadoConsumo = document.getElementById('consumoResult');
 
-// --- Funciones Auxiliares ---
-function storeToken(token) {
-    jwtToken = token;
-    localStorage.setItem('jwtToken', token);
-    updateLoginStatus(true);
+// --- Funciones de Gestión del Token ---
+function almacenarToken(token) {
+    tokenJwt = token;
+    localStorage.setItem('tokenJwt', token); // Clave en localStorage también traducida para consistencia
+    actualizarEstadoLogin(true);
     console.log("Token JWT almacenado.");
 }
-function clearToken() {
-    jwtToken = null;
-    localStorage.removeItem('jwtToken');
-    updateLoginStatus(false);
+
+function limpiarToken() {
+    tokenJwt = null;
+    localStorage.removeItem('tokenJwt');
+    actualizarEstadoLogin(false);
     console.log("Token JWT eliminado.");
 }
-function loadToken() {
-    const storedToken = localStorage.getItem('jwtToken');
-    if (storedToken) {
-        jwtToken = storedToken;
-        updateLoginStatus(true);
+
+function cargarToken() {
+    const tokenAlmacenado = localStorage.getItem('tokenJwt');
+    if (tokenAlmacenado) {
+        tokenJwt = tokenAlmacenado;
+        actualizarEstadoLogin(true);
         console.log("Token JWT cargado desde localStorage.");
     } else {
-        updateLoginStatus(false);
+        actualizarEstadoLogin(false);
     }
 }
-function updateLoginStatus(isLoggedIn) {
-    if (isLoggedIn) {
-        loginStatus.textContent = 'Autenticado';
-        loginStatus.className = 'success';
-        posOperationsDiv.style.display = 'block';
-        logoutButton.style.display = 'inline-block';
-        loginForm.style.display = 'none';
+
+// --- Funciones de UI ---
+function actualizarEstadoLogin(sesionIniciada) {
+    if (sesionIniciada) {
+        estadoLogin.textContent = 'Autenticado';
+        estadoLogin.className = 'success'; // Mantener clases CSS si son referenciadas así
+        divOperacionesTPV.style.display = 'block';
+        botonCerrarSesion.style.display = 'inline-block';
+        if (formularioLogin) formularioLogin.style.display = 'none';
     } else {
-        loginStatus.textContent = 'No autenticado';
-        loginStatus.className = 'error';
-        posOperationsDiv.style.display = 'none';
-        logoutButton.style.display = 'none';
-        loginForm.style.display = 'block';
-        clearSpecificResults();
-        resultArea.innerHTML = 'Esperando acciones...';
-        resultArea.className = '';
+        estadoLogin.textContent = 'No autenticado';
+        estadoLogin.className = 'error';
+        divOperacionesTPV.style.display = 'none';
+        botonCerrarSesion.style.display = 'none';
+        if (formularioLogin) formularioLogin.style.display = 'block';
+        limpiarResultadosEspecificos();
+        areaResultadoGeneral.innerHTML = 'Esperando acciones...';
+        areaResultadoGeneral.className = '';
     }
 }
-function displayResult(data, isError = false) {
-    resultArea.innerHTML = '';
-    const content = document.createElement('pre');
-    content.style.whiteSpace = 'pre-wrap';
-    content.style.wordWrap = 'break-word';
-    content.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
-    resultArea.appendChild(content);
-    resultArea.className = isError ? 'error' : 'success'; 
-    if (isError) console.error("API Error:", data); else console.log("API Success:", data);
+
+/** Muestra un resultado general en el área designada. */
+function mostrarResultadoGeneral(datos, esError = false) {
+    areaResultadoGeneral.innerHTML = '';
+    const contenido = document.createElement('pre');
+    contenido.style.whiteSpace = 'pre-wrap';
+    contenido.style.wordWrap = 'break-word';
+    contenido.textContent = typeof datos === 'object' ? JSON.stringify(datos, null, 2) : datos;
+    areaResultadoGeneral.appendChild(contenido);
+    areaResultadoGeneral.className = esError ? 'error' : 'success';
+    if (esError) console.error("Error API (General):", datos); else console.log("Éxito API (General):", datos);
 }
-function displaySpecificResult(targetDiv, message, isError) {
-    if (targetDiv) {
-        targetDiv.textContent = message;
-        targetDiv.className = `section-result ${isError ? 'error' : 'success'}`;
+
+/** Muestra un resultado en un div específico para una operación. */
+function mostrarResultadoEspecifico(divDestino, mensaje, esError) {
+    if (divDestino) {
+        divDestino.textContent = mensaje;
+        divDestino.className = `section-result ${esError ? 'error' : 'success'}`; // Mantener clases CSS
     }
 }
-function clearSpecificResults() {
-    if (consultaResultDiv) { consultaResultDiv.textContent = ''; consultaResultDiv.className = 'section-result'; }
-    if (recargaResultDiv) { recargaResultDiv.textContent = ''; recargaResultDiv.className = 'section-result'; }
-    if (consumoResultDiv) { consumoResultDiv.textContent = ''; consumoResultDiv.className = 'section-result'; }
+
+function limpiarResultadosEspecificos() {
+    if (divResultadoConsulta) { divResultadoConsulta.textContent = ''; divResultadoConsulta.className = 'section-result'; }
+    if (divResultadoRecarga) { divResultadoRecarga.textContent = ''; divResultadoRecarga.className = 'section-result'; }
+    if (divResultadoConsumo) { divResultadoConsumo.textContent = ''; divResultadoConsumo.className = 'section-result'; }
 }
 
 /**
  * Realiza una llamada fetch a la API, añadiendo el token JWT si está disponible.
- * Maneja la respuesta y posibles errores, mostrando resultados en las áreas designadas.
+ * Maneja la respuesta y posibles errores.
  * @param {string} url - La URL completa del endpoint de la API.
- * @param {object} [options={}] - Opciones para la función fetch (method, body, etc.).
+ * @param {object} [opciones={}] - Opciones para la función fetch (method, body, etc.).
  * @returns {Promise<any>} - Promesa que resuelve con los datos de la respuesta o rechaza con error.
  */
-async function fetchWithAuth(url, options = {}) {
-    const headers = { ...(options.headers || {}) };
-    if (jwtToken) {
-        headers['Authorization'] = `Bearer ${jwtToken}`;
+async function peticionApiConAutenticacion(url, opciones = {}) {
+    const cabeceras = { ...(opciones.headers || {}) };
+    if (tokenJwt) {
+        cabeceras['Authorization'] = `Bearer ${tokenJwt}`;
     }
-    if (options.body) {
-        if (options.body instanceof URLSearchParams) {
-            if (!headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
-        } else if (typeof options.body === 'object' && !(options.body instanceof FormData)) {
-            if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
-            if (typeof options.body !== 'string') options.body = JSON.stringify(options.body);
+    if (opciones.body) {
+        if (opciones.body instanceof URLSearchParams) {
+            if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+        } else if (typeof opciones.body === 'object' && !(opciones.body instanceof FormData)) {
+            if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/json';
+            if (typeof opciones.body !== 'string') opciones.body = JSON.stringify(opciones.body);
         }
     }
-    const fetchOptions = { ...options, headers: headers };
-    console.log(`Fetching: ${url}`, fetchOptions);
+    const opcionesFetch = { ...opciones, headers: cabeceras };
+    console.log(`Petición: ${url}`, opcionesFetch);
 
     try {
-        const response = await fetch(url, fetchOptions);
-        let responseData = null;
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            try { responseData = await response.json(); }
-            catch (jsonError) {
-                console.warn("Fallo al parsear JSON, intentando obtener texto.", jsonError);
-                try { responseData = await response.text(); }
-                catch (textError) { console.error("Fallo al obtener texto.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+        const respuesta = await fetch(url, opcionesFetch);
+        let datosRespuesta = null;
+        const tipoContenido = respuesta.headers.get('content-type');
+
+        if (tipoContenido && tipoContenido.includes('application/json')) {
+            try { datosRespuesta = await respuesta.json(); }
+            catch (errorJson) {
+                console.warn("Fallo al parsear JSON, intentando obtener texto.", errorJson);
+                try { datosRespuesta = await respuesta.text(); }
+                catch (errorTexto) { console.error("Fallo crítico al obtener texto de respuesta.", errorTexto); datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`; }
             }
         } else {
-            try { responseData = await response.text(); }
-            catch (textError) { console.error("Fallo al obtener texto no JSON.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+            try { datosRespuesta = await respuesta.text(); }
+            catch (errorTexto) { console.error("Fallo al obtener texto no JSON.", errorTexto); datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`; }
         }
 
-        if (!response.ok) {
-            console.error(`HTTP Error: ${response.status} ${response.statusText}`, responseData);
-            const errorMessage = (responseData && typeof responseData === 'object' && responseData.error)
-                ? responseData.error
-                : (responseData && typeof responseData === 'string' && responseData.length < 200 && responseData.length > 0 ? responseData : `Error ${response.status}: ${response.statusText}`);
-            displayResult(errorMessage, true);
-            throw new Error(errorMessage);
+        if (!respuesta.ok) {
+            console.error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`, datosRespuesta);
+            const mensajeError = (datosRespuesta && typeof datosRespuesta === 'object' && datosRespuesta.error)
+                ? datosRespuesta.error
+                : (datosRespuesta && typeof datosRespuesta === 'string' && datosRespuesta.length < 200 && datosRespuesta.length > 0 ? datosRespuesta : `Error ${respuesta.status}: ${respuesta.statusText}`);
+            // No llamar a mostrarResultadoGeneral aquí para que cada manejador decida dónde mostrar el error.
+            throw new Error(mensajeError);
         }
-        console.log("Fetch successful", responseData);
-        displayResult(responseData, false);
-        return responseData;
+        console.log("Petición API exitosa", datosRespuesta);
+        // No llamar a mostrarResultadoGeneral aquí, el llamador se encargará.
+        return datosRespuesta;
 
     } catch (error) {
-        console.error('Error en fetchWithAuth:', error);
-        if (!error.message.includes("HTTP Error") && !error.message.startsWith("Error ")) {
-            displayResult(`Error de red o fetch: ${error.message}`, true);
+        console.error('Error en peticionApiConAutenticacion:', error);
+        // No mostrar error genérico aquí si ya fue un error HTTP, para evitar duplicados.
+        // Solo mostrar si es un error de red u otro tipo no manejado arriba.
+        if (!error.message.includes("Error HTTP") && !error.message.startsWith("Error ") && !(error instanceof DOMException && error.name === "AbortError")) {
+            mostrarResultadoGeneral(`Error de red o configuración: ${error.message}`, true);
         }
-        throw error;
+        throw error; // Re-lanzar para que el manejador original lo capture.
     }
 }
 
 // --- Manejadores de Eventos ---
 
-/** Maneja el envío del formulario de login */
-async function handleLogin(event) {
-    event.preventDefault();
-    const formData = new FormData(loginForm);
-    const credentials = { email: formData.get('email'), password: formData.get('password') };
-    displayResult("Intentando iniciar sesión...");
-    clearSpecificResults();
+/** Maneja el envío del formulario de login. */
+async function manejarLogin(evento) {
+    evento.preventDefault();
+    const datosFormulario = new FormData(formularioLogin);
+    const credenciales = { email: datosFormulario.get('email'), password: datosFormulario.get('password') };
+    mostrarResultadoGeneral("Intentando iniciar sesión...");
+    limpiarResultadosEspecificos();
     try {
-        const data = await fetchWithAuth(`${API_BASE_URL}/auth/login`, { method: 'POST', body: credentials });
-        if (data && data.token) {
-            storeToken(data.token);
+        const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/auth/login`, { method: 'POST', body: credenciales });
+        if (datos && datos.token) {
+            almacenarToken(datos.token);
+            mostrarResultadoGeneral("Login exitoso. Token recibido.", false); // Mensaje de éxito general
         } else {
-            console.error("Respuesta de login inesperada (sin token):", data);
-            displayResult("Error: Respuesta de login inesperada del servidor.", true);
-            clearToken();
+            console.error("Respuesta de login inesperada (sin token):", datos);
+            mostrarResultadoGeneral("Error: Respuesta de login inesperada del servidor.", true);
+            limpiarToken();
         }
     } catch (error) {
-        clearToken();
+        mostrarResultadoGeneral(`Error en login: ${error.message}`, true);
+        limpiarToken();
     }
 }
 
-/** Maneja el clic en el botón de logout */
-function handleLogout() {
-    clearToken();
-    displayResult("Sesión cerrada.");
-    clearSpecificResults();
+/** Maneja el clic en el botón de cerrar sesión. */
+function manejarCierreSesion() {
+    limpiarToken();
+    mostrarResultadoGeneral("Sesión cerrada.");
+    limpiarResultadosEspecificos();
 }
 
-/** Maneja la consulta de datos de una pulsera */
-async function handleCheckBalance(event) {
-    event.preventDefault();
-    const uid = document.getElementById('checkUid').value;
-    clearSpecificResults();
-    resultArea.innerHTML = ''; resultArea.className = '';
+/** Maneja la consulta de saldo de una pulsera. */
+async function manejarConsultarSaldo(evento) {
+    evento.preventDefault();
+    const uid = document.getElementById('checkUid').value; // ID específico de este formulario
+    limpiarResultadosEspecificos();
+    areaResultadoGeneral.innerHTML = ''; areaResultadoGeneral.className = ''; // Limpiar área general
 
     if (!uid) {
-        displaySpecificResult(consultaResultDiv, "Por favor, introduce un UID de pulsera.", true);
+        mostrarResultadoEspecifico(divResultadoConsulta, "Por favor, introduce un UID de pulsera.", true);
         return;
     }
-    displaySpecificResult(consultaResultDiv, `Consultando pulsera UID: ${uid}...`, false);
-    displayResult(`Consultando pulsera UID: ${uid}...`, false);
+    mostrarResultadoEspecifico(divResultadoConsulta, `Consultando pulsera UID: ${uid}...`, false);
 
     try {
-        const data = await fetchWithAuth(`${API_BASE_URL}/pos/pulseras/${uid}`, { method: 'GET' });
-        if (data && data.saldo !== undefined && data.activa !== undefined) {
-            const estado = data.activa ? 'Activa' : 'Inactiva';
-            const saldoFormateado = data.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
-            // *** Mostrar ID del festival al que pertenece la pulsera ***
-            const festivalInfo = data.idFestival ? ` (Festival ID: ${data.idFestival})` : '';
-            displaySpecificResult(consultaResultDiv, `Saldo: ${saldoFormateado} | Estado: ${estado}${festivalInfo}`, false);
+        const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/pos/pulseras/${uid}`, { method: 'GET' });
+        if (datos && datos.saldo !== undefined && datos.activa !== undefined) {
+            const estado = datos.activa ? 'Activa' : 'Inactiva';
+            const saldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            const infoFestival = datos.idFestival ? ` (Festival ID: ${datos.idFestival})` : ''; // Mostrar ID del festival
+            mostrarResultadoEspecifico(divResultadoConsulta, `Saldo: ${saldoFormateado} | Estado: ${estado}${infoFestival}`, false);
         } else {
-            displaySpecificResult(consultaResultDiv, "Respuesta recibida, pero faltan datos de saldo o estado.", true);
+            mostrarResultadoEspecifico(divResultadoConsulta, "Respuesta recibida, pero faltan datos de saldo o estado.", true);
         }
     } catch (error) {
-        displaySpecificResult(consultaResultDiv, `Error al consultar: ${error.message}`, true);
+        mostrarResultadoEspecifico(divResultadoConsulta, `Error al consultar: ${error.message}`, true);
     }
 }
 
-/** Maneja el formulario de recarga de pulsera */
-async function handleRecharge(event) {
-    event.preventDefault();
-    const formData = new FormData(rechargeForm);
-    const uid = formData.get('codigoUid');
-    const festivalId = posFestivalIdInput.value; 
-    const body = new URLSearchParams(formData);
-    clearSpecificResults();
-    resultArea.innerHTML = ''; resultArea.className = '';
+/** Maneja el formulario de recarga de pulsera. */
+async function manejarRecarga(evento) {
+    evento.preventDefault();
+    const datosFormulario = new FormData(formularioRecarga);
+    const uid = datosFormulario.get('codigoUid');
+    const idFestival = entradaIdFestivalTPV.value;
+    const cuerpoPeticion = new URLSearchParams(datosFormulario); // UID y monto están aquí
+    limpiarResultadosEspecificos();
+    areaResultadoGeneral.innerHTML = ''; areaResultadoGeneral.className = '';
 
-    if (!festivalId) {
-        displaySpecificResult(recargaResultDiv, "Error: No se ha definido el ID del Festival para el POS.", true);
+    if (!idFestival) {
+        mostrarResultadoEspecifico(divResultadoRecarga, "Error: No se ha definido el ID del Festival para el TPV.", true);
+        return;
+    }
+    // El festivalId se añade como query parameter
+    if (!cuerpoPeticion.has('monto') || !datosFormulario.get('monto')) {
+        mostrarResultadoEspecifico(divResultadoRecarga, "Por favor, introduce un monto para la recarga.", true);
         return;
     }
 
-    displaySpecificResult(recargaResultDiv, `Intentando recargar pulsera UID: ${uid} en Festival ID: ${festivalId}...`, false);
-    displayResult(`Intentando recargar pulsera UID: ${uid} en Festival ID: ${festivalId}...`, false);
+
+    mostrarResultadoEspecifico(divResultadoRecarga, `Intentando recargar pulsera UID: ${uid} en Festival ID: ${idFestival}...`, false);
 
     try {
-        // *** Añadir festivalId como Query Parameter a la URL ***
-        const url = `${API_BASE_URL}/pos/pulseras/${uid}/recargar?festivalId=${encodeURIComponent(festivalId)}`;
-        const data = await fetchWithAuth(url, {
+        const url = `${URL_BASE_API}/pos/pulseras/${uid}/recargar?festivalId=${encodeURIComponent(idFestival)}`;
+        const datos = await peticionApiConAutenticacion(url, {
             method: 'POST',
-            body: body
+            body: cuerpoPeticion // Contiene 'monto'
         });
 
-        if (data && data.saldo !== undefined) {
-            const nuevoSaldoFormateado = data.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
-            displaySpecificResult(recargaResultDiv, `Recarga exitosa. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
+        if (datos && datos.saldo !== undefined) {
+            const nuevoSaldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            mostrarResultadoEspecifico(divResultadoRecarga, `Recarga exitosa. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
         } else {
-            displaySpecificResult(recargaResultDiv, "Recarga procesada, pero no se recibió el nuevo saldo.", true);
+            mostrarResultadoEspecifico(divResultadoRecarga, "Recarga procesada, pero no se recibió el nuevo saldo.", true);
         }
-        rechargeForm.reset();
-
+        formularioRecarga.reset();
     } catch (error) {
-        displaySpecificResult(recargaResultDiv, `Error al recargar: ${error.message}`, true);
+        mostrarResultadoEspecifico(divResultadoRecarga, `Error al recargar: ${error.message}`, true);
     }
 }
 
-/** Maneja el formulario de registro de consumo */
-async function handleConsume(event) {
-    event.preventDefault();
-    const formData = new FormData(consumeForm);
-    const uid = formData.get('codigoUid');
-    const festivalId = posFestivalIdInput.value; 
-    clearSpecificResults();
-    resultArea.innerHTML = ''; resultArea.className = '';
+/** Maneja el formulario de registro de consumo. */
+async function manejarConsumo(evento) {
+    evento.preventDefault();
+    const datosFormulario = new FormData(formularioConsumo);
+    const uid = datosFormulario.get('codigoUid');
+    const idFestival = entradaIdFestivalTPV.value;
+    limpiarResultadosEspecificos();
+    areaResultadoGeneral.innerHTML = ''; areaResultadoGeneral.className = '';
 
-    if (!festivalId) {
-        displaySpecificResult(consumoResultDiv, "Error: No se ha definido el ID del Festival para el POS.", true);
+    if (!idFestival) {
+        mostrarResultadoEspecifico(divResultadoConsumo, "Error: No se ha definido el ID del Festival para el TPV.", true);
         return;
     }
-    // *** Asignar el ID del festival del POS al campo oculto del formulario ***
-    if (consumeFestivalIdHiddenInput) {
-        consumeFestivalIdHiddenInput.value = festivalId;
-        formData.set('idFestival', festivalId); // Asegurar que esté en formData
+
+    // Asignar el ID del festival del TPV al campo oculto del formulario de consumo si existe
+    // y asegurar que esté en datosFormulario para construir el cuerpo de la petición.
+    if (entradaOcultaIdFestivalConsumo) {
+        entradaOcultaIdFestivalConsumo.value = idFestival;
+        datosFormulario.set('idFestival', idFestival); // Asegurar que esté en datosFormulario
     } else {
-        displaySpecificResult(consumoResultDiv, "Error: Falta el campo oculto para idFestival en el formulario.", true);
+        // Si no existe el campo oculto, igualmente se puede enviar si la API lo espera en el body
+        console.warn("Campo oculto 'consumeFestivalId' no encontrado, se intentará enviar idFestival en el cuerpo si está presente en datosFormulario.");
+        if (!datosFormulario.has('idFestival')) { // Si no se pudo setear antes y no está
+            datosFormulario.set('idFestival', idFestival); // Lo añadimos explícitamente
+        }
+    }
+    if (!datosFormulario.has('monto') || !datosFormulario.get('monto')) {
+        mostrarResultadoEspecifico(divResultadoConsumo, "Por favor, introduce un monto para el consumo.", true);
         return;
     }
 
-    const body = new URLSearchParams(formData); // Crear body DESPUÉS de asignar idFestival
 
-    displaySpecificResult(consumoResultDiv, `Intentando registrar consumo en pulsera UID: ${uid} (Fest: ${festivalId})...`, false);
-    displayResult(`Intentando registrar consumo en pulsera UID: ${uid} (Fest: ${festivalId})...`, false);
+    const cuerpoPeticion = new URLSearchParams(datosFormulario); // Crear cuerpoPeticion DESPUÉS de asignar idFestival
+
+    mostrarResultadoEspecifico(divResultadoConsumo, `Intentando registrar consumo en pulsera UID: ${uid} (Fest: ${idFestival})...`, false);
 
     try {
-        // La URL no necesita festivalId como query param, ya va en el body
-        const url = `${API_BASE_URL}/pos/pulseras/${uid}/consumir`;
-        const data = await fetchWithAuth(url, {
+        // El idFestival va en el cuerpo de la petición, no como query param.
+        const url = `${URL_BASE_API}/pos/pulseras/${uid}/consumir`;
+        const datos = await peticionApiConAutenticacion(url, {
             method: 'POST',
-            body: body
+            body: cuerpoPeticion
         });
 
-        if (data && data.saldo !== undefined) {
-            const nuevoSaldoFormateado = data.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
-            displaySpecificResult(consumoResultDiv, `Consumo registrado. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
+        if (datos && datos.saldo !== undefined) {
+            const nuevoSaldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            mostrarResultadoEspecifico(divResultadoConsumo, `Consumo registrado. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
         } else {
-            displaySpecificResult(consumoResultDiv, "Consumo procesado, pero no se recibió el nuevo saldo.", true);
+            mostrarResultadoEspecifico(divResultadoConsumo, "Consumo procesado, pero no se recibió el nuevo saldo.", true);
         }
-        consumeForm.reset(); // Limpiar formulario
-
+        formularioConsumo.reset();
     } catch (error) {
-        displaySpecificResult(consumoResultDiv, `Error al consumir: ${error.message}`, true);
+        mostrarResultadoEspecifico(divResultadoConsumo, `Error al consumir: ${error.message}`, true);
     }
 }
-
 
 // --- Inicialización ---
 document.addEventListener('DOMContentLoaded', () => {
-    loadToken(); // Intentar cargar token al inicio
+    cargarToken(); // Intentar cargar token al inicio
 
-    // Asignar manejadores a los formularios y botones
-    if (loginForm) loginForm.addEventListener('submit', handleLogin);
-    if (logoutButton) logoutButton.addEventListener('click', handleLogout);
-    if (checkBalanceForm) checkBalanceForm.addEventListener('submit', handleCheckBalance);
-    if (rechargeForm) rechargeForm.addEventListener('submit', handleRecharge);
-    if (consumeForm) consumeForm.addEventListener('submit', handleConsume);
+    // Asignar manejadores a los formularios y botones, verificando su existencia
+    if (formularioLogin) formularioLogin.addEventListener('submit', manejarLogin);
+    else console.warn("Elemento 'loginForm' no encontrado.");
+
+    if (botonCerrarSesion) botonCerrarSesion.addEventListener('click', manejarCierreSesion);
+    else console.warn("Elemento 'logoutButton' no encontrado.");
+
+    if (formularioConsultarSaldo) formularioConsultarSaldo.addEventListener('submit', manejarConsultarSaldo);
+    else console.warn("Elemento 'checkBalanceForm' no encontrado.");
+
+    if (formularioRecarga) formularioRecarga.addEventListener('submit', manejarRecarga);
+    else console.warn("Elemento 'rechargeForm' no encontrado.");
+
+    if (formularioConsumo) formularioConsumo.addEventListener('submit', manejarConsumo);
+    else console.warn("Elemento 'consumeForm' no encontrado.");
 });

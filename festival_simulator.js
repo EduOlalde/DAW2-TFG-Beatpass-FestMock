@@ -1,130 +1,168 @@
 /**
- * festival_simulator.js
+ * simulador_festival.js
  * Lógica para el simulador de compra y nominación de entradas,
  * incluyendo el flujo de pago con Stripe y la visualización de entradas compradas.
+ * Versión con ID de Festival dinámico leído desde el input #entradaIdFestivalPOS.
  */
 
 // --- Configuración ---
-const API_BASE_URL = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const API_BASE_URL = 'http://localhost:8080/BeatpassTFG/api'; // Para pruebas locales
-const FESTIVAL_ID = 19;
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX';
+const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
+//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para pruebas locales
+const CLAVE_PUBLICABLE_STRIPE = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX'; // Reemplazar con tu clave real
 
 // --- Variables Globales ---
-let purchasedTickets = JSON.parse(localStorage.getItem('purchasedTickets') || '[]');
-let stripe = null;
-let cardElement = null;
+let entradasCompradas = JSON.parse(localStorage.getItem('entradasCompradas') || '[]'); // Entradas compradas en esta sesión
+let stripe = null; // Instancia de Stripe
+let elementoTarjeta = null; // Elemento de tarjeta de Stripe
 
 // --- Selectores del DOM ---
-const festivalDetailsDiv = document.getElementById('festival-details');
-const festivalErrorDiv = document.getElementById('festival-error');
-const ticketListDiv = document.getElementById('ticket-list');
-const ticketErrorDiv = document.getElementById('ticket-error');
-const paymentForm = document.getElementById('payment-form');
-const buyTicketTypeSelect = document.getElementById('buy-ticket-type');
-const buyQuantityInput = document.getElementById('buy-quantity');
-const buyEmailInput = document.getElementById('buy-email');
-const buyNameInput = document.getElementById('buy-name');
-const buyPhoneInput = document.getElementById('buy-phone');
-const cardElementContainer = document.getElementById('card-element');
-const cardErrorsDiv = document.getElementById('card-errors');
-const submitButton = document.getElementById('submit-button');
-const buttonText = document.getElementById('button-text');
+const entradaIdFestivalPOS = document.getElementById('posFestivalId'); // Mantenido ID original para compatibilidad HTML
+const divDetallesFestival = document.getElementById('festival-details');
+const divErrorFestival = document.getElementById('festival-error');
+const divListaEntradas = document.getElementById('ticket-list');
+const divErrorEntradas = document.getElementById('ticket-error');
+const formularioPago = document.getElementById('payment-form');
+const selectTipoEntradaCompra = document.getElementById('buy-ticket-type');
+const entradaCantidadCompra = document.getElementById('buy-quantity');
+const entradaEmailCompra = document.getElementById('buy-email');
+const entradaNombreCompra = document.getElementById('buy-name');
+const entradaTelefonoCompra = document.getElementById('buy-phone');
+const contenedorElementoTarjeta = document.getElementById('card-element');
+const divErroresTarjeta = document.getElementById('card-errors');
+const botonEnviar = document.getElementById('submit-button');
+const textoBoton = document.getElementById('button-text');
 const spinner = document.getElementById('spinner');
-const paymentResultDiv = document.getElementById('payment-result');
-const myTicketsSection = document.getElementById('my-tickets-section');
-const myTicketsListDiv = document.getElementById('my-tickets-list');
-const clearTicketsButton = document.getElementById('clear-tickets-button');
-const nominateTicketForm = document.getElementById('nominate-ticket-form');
-const nominateResultDiv = document.getElementById('nominate-result');
-const buyFestivalIdInput = document.getElementById('buy-festival-id');
+const divResultadoPago = document.getElementById('payment-result');
+const seccionMisEntradas = document.getElementById('my-tickets-section');
+const divListaMisEntradas = document.getElementById('my-tickets-list');
+const botonLimpiarEntradas = document.getElementById('clear-tickets-button');
+const formularioNominarEntrada = document.getElementById('nominate-ticket-form');
+const divResultadoNominacion = document.getElementById('nominate-result');
 
 // --- Funciones Auxiliares de UI ---
-function displayMessage(element, message, isError) {
-    if (!element) return;
-    element.innerHTML = '';
+
+/** Muestra un mensaje al usuario en un elemento específico. */
+function mostrarMensaje(elemento, mensaje, esError) {
+    if (!elemento) return;
+    elemento.innerHTML = '';
     const p = document.createElement('p');
-    p.innerHTML = message;
-    element.appendChild(p);
-    element.className = `message-box ${isError ? 'error-message' : 'success-message'}`;
-    element.style.display = 'block';
-    if (isError) console.error("Mensaje UI (Error):", message);
-    else console.log("Mensaje UI (Éxito):", message);
+    p.innerHTML = mensaje; // Usar innerHTML para permitir HTML simple
+    elemento.appendChild(p);
+    elemento.className = `message-box ${esError ? 'error-message' : 'success-message'}`;
+    elemento.style.display = 'block';
+    if (esError) console.error("Mensaje UI (Error):", mensaje);
 }
-function clearResult(element) {
-    if (element) {
-        element.textContent = '';
-        element.style.display = 'none';
-        element.className = 'message-box';
-    }
-}
-function setLoadingState(isLoading) {
-    if (!submitButton || !buttonText || !spinner) return;
-    if (isLoading) {
-        submitButton.disabled = true;
-        buttonText.style.display = 'none';
-        spinner.style.display = 'inline-block';
-        submitButton.classList.add('opacity-75', 'cursor-not-allowed');
-    } else {
-        submitButton.disabled = false;
-        buttonText.style.display = 'inline';
-        spinner.style.display = 'none';
-        submitButton.classList.remove('opacity-75', 'cursor-not-allowed');
+
+/** Limpia un elemento de mensaje. */
+function limpiarResultado(elemento) {
+    if (elemento) {
+        elemento.innerHTML = '';
+        elemento.style.display = 'none';
+        elemento.className = 'message-box';
     }
 }
 
+/** Controla el estado visual del botón de envío (activo/cargando). */
+function establecerEstadoCarga(estaCargando) {
+    if (!botonEnviar || !textoBoton || !spinner) return;
+    if (estaCargando) {
+        botonEnviar.disabled = true;
+        textoBoton.style.display = 'none';
+        spinner.style.display = 'inline-block';
+        botonEnviar.classList.add('opacity-75', 'cursor-not-allowed');
+    } else {
+        botonEnviar.disabled = false;
+        textoBoton.style.display = 'inline';
+        spinner.style.display = 'none';
+        botonEnviar.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+}
+
+// --- Función para obtener el ID del Festival actual ---
+/** Lee y valida el ID del festival desde el input #entradaIdFestivalPOS. */
+function obtenerIdFestivalActual() {
+    if (!entradaIdFestivalPOS) {
+        console.error("Input #posFestivalId no encontrado."); // Mantenido ID original
+        return null;
+    }
+    const idFestival = parseInt(entradaIdFestivalPOS.value, 10);
+    if (isNaN(idFestival) || idFestival <= 0) {
+        console.warn("ID de festival inválido en el input:", entradaIdFestivalPOS.value);
+        return null; // Retorna null si no es un número válido o es <= 0
+    }
+    return idFestival;
+}
+
+
 // --- Funciones de API ---
-async function apiFetch(url, options = {}) {
-    const headers = { ...(options.headers || {}) };
-    if (options.body) {
-        if (options.body instanceof URLSearchParams) {
-            if (!headers['Content-Type']) headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
-        } else if (typeof options.body === 'object' && !(options.body instanceof FormData)) {
-            if (!headers['Content-Type']) headers['Content-Type'] = 'application/json';
-            if (typeof options.body !== 'string') {
-                options.body = JSON.stringify(options.body);
+/** Realiza una petición fetch a la API, manejando JSON y errores comunes. */
+async function peticionApi(url, opciones = {}) {
+    // Configuración automática de Content-Type si no se especifica
+    const cabeceras = { ...(opciones.headers || {}) };
+    if (opciones.body) {
+        if (opciones.body instanceof URLSearchParams) {
+            if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+        } else if (typeof opciones.body === 'object' && !(opciones.body instanceof FormData)) {
+            if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/json';
+            if (typeof opciones.body !== 'string') {
+                opciones.body = JSON.stringify(opciones.body);
             }
         }
     }
-    const fetchOptions = { ...options, headers: headers };
-    console.log(`API Fetching: ${url}`, fetchOptions);
+    const opcionesFetch = { ...opciones, headers: cabeceras };
+
     try {
-        const response = await fetch(url, fetchOptions);
-        let responseData = null;
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            try { responseData = await response.json(); }
-            catch (jsonError) {
-                console.warn("Fallo al parsear JSON, intentando obtener texto.", jsonError);
-                try { responseData = await response.text(); console.warn("Respuesta obtenida como texto:", responseData); }
-                catch (textError) { console.error("Fallo crítico al obtener texto de respuesta.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+        const respuesta = await fetch(url, opcionesFetch);
+        let datosRespuesta = null;
+        const tipoContenido = respuesta.headers.get('content-type');
+
+        // Intenta parsear como JSON si el Content-Type lo indica
+        if (tipoContenido && tipoContenido.includes('application/json')) {
+            try { datosRespuesta = await respuesta.json(); }
+            catch (errorJson) {
+                console.warn("Fallo al parsear JSON, intentando obtener texto.", errorJson);
+                try { datosRespuesta = await respuesta.text(); console.warn("Respuesta obtenida como texto:", datosRespuesta); }
+                catch (errorTexto) { console.error("Fallo crítico al obtener texto de respuesta.", errorTexto); datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`; }
             }
-        } else {
-            try { responseData = await response.text(); }
-            catch (textError) { console.error("Fallo al obtener texto no JSON.", textError); responseData = `Error ${response.status}: Respuesta no procesable.`; }
+        } else { // Si no es JSON, intenta obtener como texto
+            try { datosRespuesta = await respuesta.text(); }
+            catch (errorTexto) { console.error("Fallo al obtener texto no JSON.", errorTexto); datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`; }
         }
-        if (!response.ok) {
-            console.error(`API Error Response ${response.status} for ${url}:`, responseData);
-            const errorMessage = (typeof responseData === 'object' && responseData?.error) ? responseData.error : (typeof responseData === 'string' && responseData.length < 200 && responseData.length > 0 ? responseData : `Error ${response.status}`);
-            throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
+
+        // Manejo de errores HTTP (status no OK)
+        if (!respuesta.ok) {
+            console.error(`API Error Response ${respuesta.status} for ${url}:`, datosRespuesta);
+            // Intenta obtener un mensaje de error significativo de la respuesta
+            const mensajeError = (typeof datosRespuesta === 'object' && datosRespuesta?.error) ? datosRespuesta.error : (typeof datosRespuesta === 'string' && datosRespuesta.length < 200 && datosRespuesta.length > 0 ? datosRespuesta : `Error ${respuesta.status}`);
+            throw new Error(mensajeError || `HTTP error! status: ${respuesta.status}`);
         }
-        console.log(`API Success ${options.method || 'GET'} ${url}:`, responseData);
-        return responseData;
+
+        return datosRespuesta; // Devuelve los datos si todo fue bien
     } catch (error) {
         console.error(`API Fetch error for ${url}:`, error);
-        throw error;
+        throw error; // Re-lanzar para que las funciones que llaman puedan manejarlo
     }
 }
 
 // --- Funciones de Carga de Datos ---
-async function loadFestivalDetails() {
-    clearResult(festivalErrorDiv);
-    festivalDetailsDiv.textContent = 'Cargando detalles del festival...';
-    if (buyFestivalIdInput) buyFestivalIdInput.value = FESTIVAL_ID;
+
+/** Carga y muestra los detalles del festival actual. */
+async function cargarDetallesFestival() {
+    limpiarResultado(divErrorFestival);
+    divDetallesFestival.textContent = 'Cargando detalles del festival...';
+    const idFestival = obtenerIdFestivalActual();
+
+    if (!idFestival) {
+        mostrarMensaje(divErrorFestival, "Por favor, introduce un ID de festival válido.", true);
+        divDetallesFestival.textContent = '';
+        return;
+    }
+
     try {
-        const festival = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}`);
+        const festival = await peticionApi(`${URL_BASE_API}/festivales/${idFestival}`);
         if (festival && typeof festival === 'object') {
-            festivalDetailsDiv.innerHTML = `
+            // Renderiza los detalles del festival
+            divDetallesFestival.innerHTML = `
                 <p><strong class="font-medium text-gray-700">Nombre:</strong> ${festival.nombre || 'N/A'}</p>
                 <p><strong class="font-medium text-gray-700">Fechas:</strong> ${festival.fechaInicio || 'N/A'} - ${festival.fechaFin || 'N/A'}</p>
                 <p><strong class="font-medium text-gray-700">Ubicación:</strong> ${festival.ubicacion || 'N/A'}</p>
@@ -132,98 +170,124 @@ async function loadFestivalDetails() {
                 <p><strong class="font-medium text-gray-700">Estado:</strong> <span class="font-semibold ${festival.estado === 'PUBLICADO' ? 'text-green-600' : 'text-red-600'}">${festival.estado || 'N/A'}</span></p>
             `;
         } else {
-            displayMessage(festivalErrorDiv, 'No se pudieron cargar los detalles del festival (respuesta inesperada).', true);
-            festivalDetailsDiv.textContent = '';
+            // Manejo de respuesta inesperada
+            mostrarMensaje(divErrorFestival, 'No se pudieron cargar los detalles del festival (respuesta inesperada).', true);
+            divDetallesFestival.textContent = '';
         }
     } catch (error) {
-        displayMessage(festivalErrorDiv, `Error al cargar detalles del festival: ${error.message}`, true);
-        festivalDetailsDiv.textContent = '';
+        // Manejo de error en la petición
+        mostrarMensaje(divErrorFestival, `Error al cargar detalles del festival (ID: ${idFestival}): ${error.message}`, true);
+        divDetallesFestival.textContent = '';
     }
 }
-async function loadTicketTypes() {
-    clearResult(ticketErrorDiv);
-    ticketListDiv.textContent = 'Cargando tipos de entrada...';
-    buyTicketTypeSelect.innerHTML = '<option value="">Cargando...</option>';
-    buyTicketTypeSelect.disabled = true;
+
+/** Carga y muestra los tipos de entrada disponibles para el festival actual. */
+async function cargarTiposEntrada() {
+    limpiarResultado(divErrorEntradas);
+    divListaEntradas.textContent = 'Cargando tipos de entrada...';
+    selectTipoEntradaCompra.innerHTML = '<option value="">Cargando...</option>';
+    selectTipoEntradaCompra.disabled = true;
+    const idFestival = obtenerIdFestivalActual();
+
+    if (!idFestival) {
+        mostrarMensaje(divErrorEntradas, "Introduce un ID de festival válido para ver las entradas.", true);
+        divListaEntradas.innerHTML = '';
+        selectTipoEntradaCompra.innerHTML = '<option value="">Introduce ID Festival</option>';
+        return;
+    }
+
     try {
-        const ticketTypes = await apiFetch(`${API_BASE_URL}/festivales/${FESTIVAL_ID}/entradas`);
-        ticketListDiv.innerHTML = '';
-        buyTicketTypeSelect.innerHTML = '<option value="">Seleccione un tipo...</option>';
-        if (Array.isArray(ticketTypes) && ticketTypes.length > 0) {
-            let hasAvailableTickets = false;
-            ticketTypes.forEach(ticket => {
+        const tiposEntrada = await peticionApi(`${URL_BASE_API}/festivales/${idFestival}/entradas`);
+        divListaEntradas.innerHTML = ''; // Limpiar antes de añadir nuevos
+        selectTipoEntradaCompra.innerHTML = '<option value="">Seleccione un tipo...</option>'; // Limpiar antes de añadir nuevos
+
+        if (Array.isArray(tiposEntrada) && tiposEntrada.length > 0) {
+            let hayEntradasDisponibles = false;
+            // Itera sobre los tipos de entrada y los muestra
+            tiposEntrada.forEach(entrada => {
                 const div = document.createElement('div');
                 div.className = 'border-b pb-2 mb-2';
                 div.innerHTML = `
-                    <p><strong class="font-medium">${ticket.tipo}</strong></p>
-                    <p class="text-sm text-gray-600">${ticket.descripcion || ''}</p>
-                    <p class="text-sm font-semibold text-indigo-600">Precio: ${ticket.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) || 'N/A'}</p>
-                    <p class="text-sm text-gray-500">Stock: ${ticket.stock !== null ? ticket.stock : 'N/A'}</p>
+                    <p><strong class="font-medium">${entrada.tipo}</strong></p>
+                    <p class="text-sm text-gray-600">${entrada.descripcion || ''}</p>
+                    <p class="text-sm font-semibold text-indigo-600">Precio: ${entrada.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }) || 'N/A'}</p>
+                    <p class="text-sm text-gray-500">Stock: ${entrada.stock !== null ? entrada.stock : 'N/A'}</p>
                 `;
-                ticketListDiv.appendChild(div);
-                const option = document.createElement('option');
-                option.value = ticket.idEntrada;
-                if (ticket.stock > 0) {
-                    option.textContent = `${ticket.tipo} (${ticket.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}) - Stock: ${ticket.stock}`;
-                    option.disabled = false;
-                    hasAvailableTickets = true;
+                divListaEntradas.appendChild(div);
+
+                // Añade la opción al select de compra
+                const opcion = document.createElement('option');
+                opcion.value = entrada.idEntrada; // ID del TIPO de entrada
+                if (entrada.stock > 0) {
+                    opcion.textContent = `${entrada.tipo} (${entrada.precio?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}) - Stock: ${entrada.stock}`;
+                    opcion.disabled = false;
+                    hayEntradasDisponibles = true;
                 } else {
-                    option.textContent = `${ticket.tipo} (AGOTADO)`;
-                    option.disabled = true;
+                    opcion.textContent = `${entrada.tipo} (AGOTADO)`;
+                    opcion.disabled = true;
                 }
-                buyTicketTypeSelect.appendChild(option);
+                selectTipoEntradaCompra.appendChild(opcion);
             });
-            buyTicketTypeSelect.disabled = !hasAvailableTickets;
-            if (!hasAvailableTickets) {
-                buyTicketTypeSelect.innerHTML = '<option value="">Entradas Agotadas</option>';
+            // Habilita/deshabilita el select según disponibilidad
+            selectTipoEntradaCompra.disabled = !hayEntradasDisponibles;
+            if (!hayEntradasDisponibles) {
+                selectTipoEntradaCompra.innerHTML = '<option value="">Entradas Agotadas</option>';
             }
         } else {
-            ticketListDiv.innerHTML = '<p class="text-gray-500 italic">No hay tipos de entrada disponibles.</p>';
-            buyTicketTypeSelect.innerHTML = '<option value="">No hay entradas disponibles</option>';
-            buyTicketTypeSelect.disabled = true;
+            // Mensaje si no hay tipos de entrada
+            divListaEntradas.innerHTML = '<p class="text-gray-500 italic">No hay tipos de entrada disponibles para este festival.</p>';
+            selectTipoEntradaCompra.innerHTML = '<option value="">No hay entradas disponibles</option>';
+            selectTipoEntradaCompra.disabled = true;
         }
     } catch (error) {
-        displayMessage(ticketErrorDiv, `Error al cargar tipos de entrada: ${error.message}`, true);
-        ticketListDiv.innerHTML = '';
-        buyTicketTypeSelect.innerHTML = '<option value="">Error al cargar</option>';
-        buyTicketTypeSelect.disabled = true;
+        // Manejo de error en la petición
+        mostrarMensaje(divErrorEntradas, `Error al cargar tipos de entrada (ID: ${idFestival}): ${error.message}`, true);
+        divListaEntradas.innerHTML = '';
+        selectTipoEntradaCompra.innerHTML = '<option value="">Error al cargar</option>';
+        selectTipoEntradaCompra.disabled = true;
     }
 }
 
 // --- Inicialización de Stripe ---
-function initializeStripe() {
-    if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY === 'pk_test_TU_CLAVE_PUBLICABLE_AQUI') {
-        console.error("¡ERROR! Clave publicable de Stripe no configurada. Reemplaza el placeholder en festival_simulator.js.");
-        displayMessage(paymentResultDiv, "Error de configuración: Falta la clave publicable de Stripe.", true);
-        if (submitButton) submitButton.disabled = true;
+/** Inicializa Stripe.js y monta el elemento de tarjeta. */
+function iniciarStripe() {
+    // Validar que la clave publicable esté configurada
+    if (!CLAVE_PUBLICABLE_STRIPE || CLAVE_PUBLICABLE_STRIPE === 'pk_test_TU_CLAVE_PUBLICABLE_AQUI') {
+        console.error("¡ERROR! Clave publicable de Stripe no configurada. Reemplaza el placeholder en simulador_festival.js.");
+        mostrarMensaje(divResultadoPago, "Error de configuración: Falta la clave publicable de Stripe.", true);
+        if (botonEnviar) botonEnviar.disabled = true;
         return;
     }
     try {
-        stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-        const elements = stripe.elements();
-        const style = {
+        stripe = Stripe(CLAVE_PUBLICABLE_STRIPE);
+        const elementos = stripe.elements();
+        // Estilos para el elemento de tarjeta
+        const estilo = {
             base: { color: '#32325d', fontFamily: '"Inter", sans-serif', fontSmoothing: 'antialiased', fontSize: '16px', '::placeholder': { color: '#aab7c4' } },
             invalid: { color: '#fa755a', iconColor: '#fa755a' }
         };
-        cardElement = elements.create('card', { style: style });
-        if (cardElementContainer) {
-            cardElement.mount('#card-element');
-            console.log("Stripe Card Element montado.");
+        elementoTarjeta = elementos.create('card', { style: estilo });
+
+        // Montar el elemento en el contenedor del DOM
+        if (contenedorElementoTarjeta) {
+            elementoTarjeta.mount('#card-element');
         } else {
             console.error("Error: No se encontró el contenedor #card-element en el HTML.");
             throw new Error("Contenedor de Stripe no encontrado.");
         }
-        cardElement.on('change', (event) => {
-            if (cardErrorsDiv) {
-                if (event.error) { cardErrorsDiv.textContent = event.error.message; }
-                else { cardErrorsDiv.textContent = ''; }
+
+        // Escuchar cambios en el CardElement y mostrar errores
+        elementoTarjeta.on('change', (evento) => {
+            if (divErroresTarjeta) {
+                if (evento.error) { divErroresTarjeta.textContent = evento.error.message; }
+                else { divErroresTarjeta.textContent = ''; }
             }
         });
-        console.log("Stripe Elements inicializado correctamente.");
     } catch (error) {
+        // Manejo de error en la inicialización de Stripe
         console.error("Error inicializando Stripe Elements:", error);
-        displayMessage(paymentResultDiv, `Error al inicializar el sistema de pago: ${error.message}. Por favor, recarga la página.`, true);
-        if (submitButton) submitButton.disabled = true;
+        mostrarMensaje(divResultadoPago, `Error al inicializar el sistema de pago: ${error.message}. Por favor, recarga la página.`, true);
+        if (botonEnviar) botonEnviar.disabled = true;
     }
 }
 
@@ -231,147 +295,182 @@ function initializeStripe() {
 
 /**
  * Maneja el envío del formulario de pago.
+ * 1. Obtiene datos del formulario y valida.
+ * 2. Llama al backend para crear un PaymentIntent (/iniciar-pago).
+ * 3. Confirma el pago con tarjeta usando Stripe.js.
+ * 4. Si Stripe confirma, llama al backend para registrar la compra (/confirmar-compra).
+ * 5. Procesa las entradas generadas (genera QR, guarda localmente, renderiza).
  */
-async function handlePaymentSubmit(event) {
-    event.preventDefault();
-    setLoadingState(true);
-    clearResult(paymentResultDiv);
-    if (cardErrorsDiv) cardErrorsDiv.textContent = '';
+async function manejarEnvioPago(evento) {
+    evento.preventDefault();
+    establecerEstadoCarga(true);
+    limpiarResultado(divResultadoPago);
+    if (divErroresTarjeta) divErroresTarjeta.textContent = '';
 
-    if (!stripe || !cardElement) {
-        displayMessage(paymentResultDiv, "Error: El sistema de pago no está listo. Intenta recargar.", true);
-        setLoadingState(false);
+    // Verificar que Stripe esté listo
+    if (!stripe || !elementoTarjeta) {
+        mostrarMensaje(divResultadoPago, "Error: El sistema de pago no está listo. Intenta recargar.", true);
+        establecerEstadoCarga(false);
         return;
     }
 
-    // 1. Recoger datos del formulario
-    const idEntrada = buyTicketTypeSelect.value;
-    const cantidad = parseInt(buyQuantityInput.value, 10);
-    const emailAsistente = buyEmailInput.value;
-    const nombreAsistente = buyNameInput.value;
-    const telefonoAsistente = buyPhoneInput.value;
+    // 1. Obtener ID del festival y datos del formulario
+    const idFestival = obtenerIdFestivalActual();
+    const idTipoEntrada = selectTipoEntradaCompra.value; // ID del TIPO de entrada
+    const cantidad = parseInt(entradaCantidadCompra.value, 10);
+    const emailAsistente = entradaEmailCompra.value;
+    const nombreAsistente = entradaNombreCompra.value;
+    const telefonoAsistente = entradaTelefonoCompra.value;
 
-    if (!idEntrada || cantidad <= 0 || !emailAsistente || !nombreAsistente) {
-        displayMessage(paymentResultDiv, "Por favor, completa todos los campos obligatorios (tipo de entrada, cantidad, email, nombre).", true);
-        setLoadingState(false);
+    // Validaciones básicas
+    if (!idFestival) {
+        mostrarMensaje(divResultadoPago, "Error: No se ha especificado un ID de festival válido.", true);
+        establecerEstadoCarga(false);
+        return;
+    }
+    if (!idTipoEntrada || cantidad <= 0 || !emailAsistente || !nombreAsistente) {
+        mostrarMensaje(divResultadoPago, "Por favor, completa todos los campos obligatorios (tipo de entrada, cantidad, email, nombre).", true);
+        establecerEstadoCarga(false);
         return;
     }
 
-    let clientSecret = null;
+    let secretoCliente = null;
 
     try {
-        // 2. Llamar al backend para iniciar el pago
-        console.log("Llamando a backend: /public/venta/iniciar-pago");
-        const iniciarPagoResponse = await apiFetch(`${API_BASE_URL}/public/venta/iniciar-pago`, {
+        // 2. Llamar al backend para iniciar el pago (crear PaymentIntent)
+        const respuestaIniciarPago = await peticionApi(`${URL_BASE_API}/public/venta/iniciar-pago`, {
             method: 'POST',
-            body: JSON.stringify({ idEntrada: parseInt(idEntrada, 10), cantidad: cantidad }),
+            body: JSON.stringify({ idEntrada: parseInt(idTipoEntrada, 10), cantidad: cantidad }),
             headers: { 'Content-Type': 'application/json' }
         });
-        clientSecret = iniciarPagoResponse?.clientSecret;
-        if (!clientSecret) throw new Error("No se recibió el 'client_secret' del servidor.");
-        console.log("Client Secret recibido.");
+        secretoCliente = respuestaIniciarPago?.clientSecret;
+        if (!secretoCliente) throw new Error("No se recibió el 'client_secret' del servidor.");
 
         // 3. Confirmar el pago de la tarjeta con Stripe.js
-        console.log("Confirmando pago de tarjeta con Stripe...");
-        const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-            clientSecret, { payment_method: { card: cardElement } }
+        const { error: errorStripe, paymentIntent: intentoPago } = await stripe.confirmCardPayment(
+            secretoCliente, { payment_method: { card: elementoTarjeta } }
         );
-        if (stripeError) {
-            console.error("Error de Stripe al confirmar pago:", stripeError);
-            if (cardErrorsDiv) cardErrorsDiv.textContent = stripeError.message || "Error desconocido durante el pago.";
-            displayMessage(paymentResultDiv, `Error en el pago con tarjeta: ${stripeError.message}`, true);
-            setLoadingState(false);
-            return;
+
+        // Manejar error de Stripe
+        if (errorStripe) {
+            console.error("Error de Stripe al confirmar pago:", errorStripe);
+            if (divErroresTarjeta) divErroresTarjeta.textContent = errorStripe.message || "Error desconocido durante el pago.";
+            mostrarMensaje(divResultadoPago, `Error en el pago con tarjeta: ${errorStripe.message}`, true);
+            establecerEstadoCarga(false);
+            return; // No continuar si Stripe falla
         }
 
-        // 4. Si el pago con Stripe fue exitoso
-        console.log("Pago con Stripe exitoso. PaymentIntent:", paymentIntent);
-        if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // 4. Si el pago con Stripe fue exitoso (status 'succeeded')
+        if (intentoPago && intentoPago.status === 'succeeded') {
             // 5. Llamar al backend para confirmar la compra en nuestro sistema
-            console.log("Llamando a backend: /public/venta/confirmar-compra");
-            const backendConfirmationData = new URLSearchParams({
-                idFestival: FESTIVAL_ID.toString(),
-                idEntrada: idEntrada,
+            const datosConfirmacionBackend = new URLSearchParams({
+                idFestival: idFestival.toString(), // Usar el ID dinámico
+                idEntrada: idTipoEntrada,
                 cantidad: cantidad.toString(),
                 emailAsistente: emailAsistente,
                 nombreAsistente: nombreAsistente,
                 telefonoAsistente: telefonoAsistente || '',
-                paymentIntentId: paymentIntent.id
+                paymentIntentId: intentoPago.id // ID de la transacción de Stripe
             });
-            const compraConfirmada = await apiFetch(`${API_BASE_URL}/public/venta/confirmar-compra`, {
+            const compraConfirmada = await peticionApi(`${URL_BASE_API}/public/venta/confirmar-compra`, {
                 method: 'POST',
-                body: backendConfirmationData
+                body: datosConfirmacionBackend
             });
 
-            // 6. Mostrar éxito y PROCESAR ENTRADAS GENERADAS
-            displayMessage(paymentResultDiv, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. Añadiendo entradas a la lista...`, false);
+            // 6. Mostrar éxito y procesar entradas generadas
+            mostrarMensaje(divResultadoPago, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. Añadiendo entradas a la lista...`, false);
 
             // --- INICIO: Procesar entradas generadas ---
             if (compraConfirmada.entradasGeneradas && Array.isArray(compraConfirmada.entradasGeneradas)) {
-                console.log("Procesando entradas generadas recibidas:", compraConfirmada.entradasGeneradas);
                 const nuevasEntradasParaMostrar = [];
-                // Usar Promise.all para generar QRs en paralelo
+                // Generar QRs y preparar datos para guardar localmente
                 await Promise.all(compraConfirmada.entradasGeneradas.map(async (entradaDTO) => {
-                    const qrImageDataUrl = await generateQrDataUrl(entradaDTO.codigoQr); // Generar QR
-                    const ticketLocal = {
+                    const urlDatosImagenQr = await generarUrlDatosQr(entradaDTO.codigoQr);
+                    const entradaLocal = {
                         idEntradaAsignada: entradaDTO.idEntradaAsignada,
                         codigoQr: entradaDTO.codigoQr,
-                        estado: entradaDTO.estado,
+                        estado: entradaDTO.estado, // Estado devuelto por la API
                         tipoEntradaOriginal: entradaDTO.tipoEntradaOriginal,
-                        qrCodeImageDataUrl: qrImageDataUrl, // Guardar URL generada
-                        nombreAsistente: entradaDTO.nombreAsistente,
-                        emailAsistente: entradaDTO.emailAsistente,
-                        statusVisual: ''
+                        urlDatosImagenQr: urlDatosImagenQr, // URL del QR generado
+                        nombreAsistente: entradaDTO.nombreAsistente, // Puede ser null inicialmente
+                        emailAsistente: entradaDTO.emailAsistente, // Puede ser null inicialmente
+                        estadoVisual: '' // Estado visual temporal (ej. 'Nominada')
                     };
-                    nuevasEntradasParaMostrar.push(ticketLocal);
+                    nuevasEntradasParaMostrar.push(entradaLocal);
                 }));
 
-                // Añadir las nuevas entradas al array global y guardar en localStorage
-                purchasedTickets.push(...nuevasEntradasParaMostrar);
-                localStorage.setItem('purchasedTickets', JSON.stringify(purchasedTickets));
-                renderPurchasedTickets(); // Actualizar la lista visual CON las imágenes QR
-                console.log("Entradas generadas añadidas a la lista local y renderizadas.");
+                // Añadir nuevas entradas al array global y guardar en localStorage
+                entradasCompradas.push(...nuevasEntradasParaMostrar);
+                localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
+                mostrarEntradasGuardadas(); // Actualizar la lista visual
             } else {
-                console.warn("La respuesta de confirmación no contenía la lista 'entradasGeneradas'. No se pueden mostrar las nuevas entradas.");
-                // Modificar mensaje si no se reciben entradas
-                displayMessage(paymentResultDiv, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. (No se recibieron detalles de entradas generadas).`, false);
+                console.warn("La respuesta de confirmación no contenía la lista 'entradasGeneradas'.");
+                mostrarMensaje(divResultadoPago, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. (No se recibieron detalles de entradas generadas).`, false);
             }
             // --- FIN: Procesar entradas generadas ---
 
-            if (paymentForm) paymentForm.reset();
-            if (cardElement) cardElement.clear();
-            loadTicketTypes(); // Recargar tipos para stock
+            // Limpiar formulario y recargar tipos de entrada (para stock)
+            if (formularioPago) formularioPago.reset();
+            if (elementoTarjeta) elementoTarjeta.clear();
+            cargarTiposEntrada();
 
         } else {
-            console.warn("Estado inesperado del PaymentIntent tras confirmación:", paymentIntent?.status);
-            displayMessage(paymentResultDiv, `El pago no se completó del todo (Estado: ${paymentIntent?.status || 'desconocido'}). Contacta con soporte.`, true);
+            // Caso raro: Stripe no da error pero el intent no está 'succeeded'
+            console.warn("Estado inesperado del PaymentIntent tras confirmación:", intentoPago?.status);
+            mostrarMensaje(divResultadoPago, `El pago no se completó del todo (Estado: ${intentoPago?.status || 'desconocido'}). Contacta con soporte.`, true);
         }
 
     } catch (error) {
+        // Captura errores de peticionApi o Stripe no controlados antes
         console.error("Error en el proceso de pago completo:", error);
-        displayMessage(paymentResultDiv, `Error procesando la compra: ${error.message || 'Error desconocido'}`, true);
+        mostrarMensaje(divResultadoPago, `Error procesando la compra: ${error.message || 'Error desconocido'}`, true);
     } finally {
-        setLoadingState(false);
+        establecerEstadoCarga(false); // Reactivar el botón siempre
     }
 }
 
 // --- Manejador de Nominación ---
-async function handleNominateTicket(event) {
-    event.preventDefault();
-    clearResult(nominateResultDiv);
-    const formData = new FormData(nominateTicketForm);
-    const body = new URLSearchParams(formData);
-    const submitButton = nominateTicketForm.querySelector('button[type="submit"]');
-    submitButton.disabled = true; submitButton.textContent = 'Nominando...';
+/**
+ * Maneja el envío del formulario de nominación.
+ * 1. Obtiene datos del formulario.
+ * 2. Llama al backend para nominar la entrada (/public/venta/nominar).
+ * 3. Muestra el resultado y actualiza la entrada en la lista local.
+ */
+async function manejarNominarEntrada(evento) {
+    evento.preventDefault();
+    limpiarResultado(divResultadoNominacion);
+    const datosFormulario = new FormData(formularioNominarEntrada);
+    const cuerpoPeticion = new URLSearchParams(datosFormulario); // Enviar como x-www-form-urlencoded
+    const botonEnviarNominacion = formularioNominarEntrada.querySelector('button[type="submit"]');
+    if (botonEnviarNominacion) {
+        botonEnviarNominacion.disabled = true; botonEnviarNominacion.textContent = 'Nominando...';
+    }
+
     try {
-        const result = await apiFetch(`${API_BASE_URL}/public/venta/nominar`, { method: 'POST', body: body });
-        displayMessage(nominateResultDiv, result.mensaje || 'Entrada nominada con éxito.', false);
-        if (nominateTicketForm) nominateTicketForm.reset();
-        updatePurchasedTicketStatus(formData.get('codigoQr'), 'Nominada');
+        // Llamar a la API para nominar
+        const resultado = await peticionApi(`${URL_BASE_API}/public/venta/nominar`, {
+            method: 'POST',
+            body: cuerpoPeticion
+        });
+        mostrarMensaje(divResultadoNominacion, resultado.mensaje || 'Entrada nominada con éxito.', false);
+        if (formularioNominarEntrada) formularioNominarEntrada.reset(); // Limpiar formulario
+
+        // Actualizar visualmente la entrada en la lista "Mis Entradas"
+        // Pasamos los datos del nominado para actualizar la visualización
+        const datosNominado = {
+            nombreNominado: datosFormulario.get('nombreNominado'),
+            emailNominado: datosFormulario.get('emailNominado')
+        };
+        actualizarEstadoEntradaComprada(datosFormulario.get('codigoQr'), 'Nominada', datosNominado);
+
     } catch (error) {
-        displayMessage(nominateResultDiv, `Error al nominar: ${error.message}`, true);
+        // Manejo de error en la nominación
+        mostrarMensaje(divResultadoNominacion, `Error al nominar: ${error.message}`, true);
     } finally {
-        submitButton.disabled = false; submitButton.textContent = 'Nominar Entrada';
+        // Reactivar el botón
+        if (botonEnviarNominacion) {
+            botonEnviarNominacion.disabled = false; botonEnviarNominacion.textContent = 'Nominar Entrada';
+        }
     }
 }
 
@@ -379,119 +478,169 @@ async function handleNominateTicket(event) {
 
 /**
  * Genera la URL de datos Base64 para una imagen QR usando qrcode-generator.
+ * Requiere que la librería qrcode-generator esté incluida en el HTML.
  * <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
  */
-async function generateQrDataUrl(text) {
+async function generarUrlDatosQr(texto) {
+    // Comprobar si la librería está cargada
     if (typeof qrcode === 'undefined') {
-        console.error("Librería qrcode-generator no cargada.");
-        return null;
+        console.error("Librería qrcode-generator no cargada. Asegúrate de incluir el script en tu HTML.");
+        return null; // Retorna null si la librería no está disponible
     }
-    if (!text) return null;
+    if (!texto) return null; // No generar QR si no hay texto
+
     try {
-        const qr = qrcode(0, 'M'); // typeNumber 0 (auto), errorCorrectionLevel 'M'
-        qr.addData(text);
+        const qr = qrcode(0, 'M'); // typeNumber 0 (auto-detect), errorCorrectionLevel 'M' (Medium)
+        qr.addData(texto);
         qr.make();
-        // Ajustar cellSize (4) y margin (2) para tamaño y borde
-        const dataUrl = qr.createDataURL(4, 2);
-        return dataUrl;
+        // createDataURL(cellSize, margin)
+        const urlDatos = qr.createDataURL(4, 2); // Tamaño de celda 4px, margen de 2 módulos
+        return urlDatos;
     } catch (error) {
-        console.error("Error generando imagen QR para:", text, error);
-        return null;
+        console.error("Error generando imagen QR para:", texto, error);
+        return null; // Retorna null en caso de error
     }
 }
 
-/** Renderiza las entradas guardadas en localStorage */
-async function renderPurchasedTickets() {
-    if (!myTicketsListDiv || !myTicketsSection) return;
+/** Renderiza las entradas guardadas en localStorage en la sección "Mis Entradas". */
+async function mostrarEntradasGuardadas() {
+    if (!divListaMisEntradas || !seccionMisEntradas) return;
 
-    myTicketsListDiv.innerHTML = ''; // Limpiar antes de re-renderizar
-    if (purchasedTickets.length === 0) {
-        myTicketsSection.style.display = 'none';
+    divListaMisEntradas.innerHTML = ''; // Limpiar antes de re-renderizar
+    if (entradasCompradas.length === 0) {
+        seccionMisEntradas.style.display = 'none'; // Ocultar sección si no hay entradas
         return;
     }
-    myTicketsSection.style.display = 'block';
+    seccionMisEntradas.style.display = 'block'; // Mostrar sección si hay entradas
 
-    // Usar Promise.all para asegurar que todos los QRs (si necesitan generarse) se completen
-    const ticketCardsHtmlPromises = purchasedTickets.map(async (ticket) => {
-        // Generar URL de imagen QR si no existe en el objeto local
-        if (!ticket.qrCodeImageDataUrl && ticket.codigoQr) {
-            console.log(`Generando QR para ${ticket.codigoQr} on demand...`);
-            ticket.qrCodeImageDataUrl = await generateQrDataUrl(ticket.codigoQr);
+    // Mapear cada entrada a una promesa que resuelve con el HTML de su tarjeta
+    // Esto permite generar los QR que falten de forma asíncrona
+    const promesasHtmlTarjetasEntrada = entradasCompradas.map(async (entrada) => {
+        // Generar URL de imagen QR si no existe en el objeto local O si es null
+        if (!entrada.urlDatosImagenQr && entrada.codigoQr) {
+            entrada.urlDatosImagenQr = await generarUrlDatosQr(entrada.codigoQr);
+            // Opcional: Actualizar localStorage si se genera un QR nuevo (puede ser costoso)
+            // localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
         }
 
         // Construir el HTML de la tarjeta para esta entrada
         return `
             <div class="ticket-card grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-b last:border-b-0 py-4">
                 <div class="md:col-span-2 space-y-1">
-                    <p><strong class="font-medium text-gray-800">ID Entrada:</strong> ${ticket.idEntradaAsignada || 'N/A'}</p>
-                    <p><strong class="font-medium text-gray-800">Tipo:</strong> ${ticket.tipoEntradaOriginal || 'N/A'}</p>
+                    <p><strong class="font-medium text-gray-800">ID Entrada:</strong> ${entrada.idEntradaAsignada || 'N/A'}</p>
+                    <p><strong class="font-medium text-gray-800">Tipo:</strong> ${entrada.tipoEntradaOriginal || 'N/A'}</p>
                     <p><strong class="font-medium text-gray-800">Código QR:</strong>
-                       <input type="text" value="${ticket.codigoQr || 'N/A'}" readonly class="text-xs font-mono bg-gray-100 px-2 py-1 rounded border border-gray-300 w-full mt-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500" title="Haz clic para copiar" onclick="this.select(); try{document.execCommand('copy'); console.log('Código QR copiado!');}catch(e){console.error('No se pudo copiar el QR.');}">
+                        <input type="text" value="${entrada.codigoQr || 'N/A'}" readonly class="text-xs font-mono bg-gray-100 px-2 py-1 rounded border border-gray-300 w-full mt-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500" title="Haz clic para copiar" onclick="this.select(); try{document.execCommand('copy'); console.log('Código QR copiado!'); this.blur();}catch(e){console.error('No se pudo copiar el QR.');}">
                     </p>
-                    <p><strong class="font-medium text-gray-800">Estado API:</strong> ${ticket.estado || 'N/A'} <span class="text-blue-600 font-semibold">${ticket.statusVisual || ''}</span></p>
-                    ${ticket.nombreAsistente ? `<p><strong class="font-medium text-gray-800">Nominada a:</strong> ${ticket.nombreAsistente} (${ticket.emailAsistente || 'email no disponible'})</p>` : '<p class="text-sm text-orange-600 italic">Pendiente de nominar</p>'}
+                    <p><strong class="font-medium text-gray-800">Estado API:</strong> ${entrada.estado || 'N/A'} <span class="text-blue-600 font-semibold">${entrada.estadoVisual || ''}</span></p>
+                    ${entrada.nombreAsistente ? `<p><strong class="font-medium text-gray-800">Nominada a:</strong> ${entrada.nombreAsistente} (${entrada.emailAsistente || 'email no disponible'})</p>` : '<p class="text-sm text-orange-600 italic">Pendiente de nominar</p>'}
                 </div>
                 <div class="text-center md:text-right">
-                    ${ticket.qrCodeImageDataUrl
-                ? `<img src="${ticket.qrCodeImageDataUrl}" alt="QR Entrada ${ticket.idEntradaAsignada}" class="w-24 h-24 inline-block border border-gray-300 p-1 bg-white qr-image-display" width="96" height="96">`
-                : `<span class="text-xs text-gray-400 italic">(No se pudo generar QR)</span>`
+                    ${entrada.urlDatosImagenQr
+                ? `<img src="${entrada.urlDatosImagenQr}" alt="QR Entrada ${entrada.idEntradaAsignada}" class="w-24 h-24 inline-block border border-gray-300 p-1 bg-white qr-image-display" width="96" height="96">`
+                : `<span class="text-xs text-gray-400 italic">(No se pudo generar QR)</span>` // Mensaje si falla la generación del QR
             }
                 </div>
             </div>
         `;
     });
 
-    // Esperar a que todas las promesas HTML se resuelvan
-    const ticketCardsHtml = await Promise.all(ticketCardsHtmlPromises);
+    // Esperar a que todas las promesas HTML (incluida la generación de QR) se resuelvan
+    const htmlTarjetasEntrada = await Promise.all(promesasHtmlTarjetasEntrada);
 
     // Añadir todo el HTML generado al contenedor
-    myTicketsListDiv.innerHTML = ticketCardsHtml.join('');
-
+    divListaMisEntradas.innerHTML = htmlTarjetasEntrada.join('');
 }
 
 
-/** Limpia las entradas guardadas localmente */
-function clearPurchasedTickets() {
+/** Limpia las entradas guardadas localmente (simulación). */
+function limpiarEntradasCompradas() {
     if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación? (Esto solo afecta a la visualización local)')) {
-        purchasedTickets = [];
-        localStorage.removeItem('purchasedTickets');
-        renderPurchasedTickets();
-        console.log('Entradas compradas (simulación) borradas del almacenamiento local.');
+        entradasCompradas = [];
+        localStorage.removeItem('entradasCompradas');
+        mostrarEntradasGuardadas(); // Re-renderizar para ocultar la sección
     }
 }
 
-/** Actualiza el estado visual temporal de una entrada */
-function updatePurchasedTicketStatus(qrCode, visualStatus) {
-    let found = false;
-    purchasedTickets = purchasedTickets.map(ticket => {
-        if (ticket.codigoQr === qrCode) {
-            found = true;
-            return { ...ticket, statusVisual: `(${visualStatus})` };
+/**
+ * Actualiza el estado visual temporal y/o los datos del nominado de una entrada en la lista local.
+ * @param {string} codigoQr - El código QR de la entrada a actualizar.
+ * @param {string} estadoVisual - El estado visual a mostrar (ej. 'Nominada', 'Validada').
+ * @param {object|null} datosNominado - Objeto con {nombreNominado, emailNominado} o null.
+ */
+function actualizarEstadoEntradaComprada(codigoQr, estadoVisual, datosNominado = null) {
+    let encontrado = false;
+    entradasCompradas = entradasCompradas.map(entrada => {
+        if (entrada.codigoQr === codigoQr) {
+            encontrado = true;
+            const entradaActualizada = { ...entrada, estadoVisual: `(${estadoVisual})` };
+            // Si se proporcionan datos del nominado, actualizarlos también
+            if (datosNominado) {
+                entradaActualizada.nombreAsistente = datosNominado.nombreNominado;
+                entradaActualizada.emailAsistente = datosNominado.emailNominado;
+                // Podríamos querer actualizar el estado API local también si la nominación lo cambia
+                // entradaActualizada.estado = 'NOMINADA'; // O el estado que devuelva la API
+            }
+            return entradaActualizada;
         }
-        return ticket;
+        return entrada;
     });
-    if (found) {
-        renderPurchasedTickets();
-        console.log(`Estado visual actualizado para QR ${qrCode} a ${visualStatus}`);
+
+    if (encontrado) {
+        // Guardar los cambios en localStorage y re-renderizar
+        localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
+        mostrarEntradasGuardadas();
     } else {
-        console.warn(`No se encontró la entrada con QR ${qrCode} para actualizar estado visual.`);
+        console.warn(`No se encontró la entrada con QR ${codigoQr} para actualizar estado visual/nominado.`);
     }
 }
 
 
 // --- Inicialización y Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM Cargado. Iniciando simulador de festival...");
-    loadFestivalDetails();
-    loadTicketTypes();
-    initializeStripe();
-    renderPurchasedTickets();
 
-    // Listeners
-    if (paymentForm) { paymentForm.addEventListener('submit', handlePaymentSubmit); console.log("Listener añadido a paymentForm."); }
-    else { console.error("Error: No se encontró paymentForm."); }
-    if (nominateTicketForm) { nominateTicketForm.addEventListener('submit', handleNominateTicket); console.log("Listener añadido a nominateTicketForm."); }
-    else { console.warn("Elemento nominateTicketForm no encontrado."); }
-    if (clearTicketsButton) { clearTicketsButton.addEventListener('click', clearPurchasedTickets); console.log("Listener añadido a clearTicketsButton."); }
-    else { console.warn("Elemento clearTicketsButton no encontrado."); }
+    // Comprobar si el input del ID existe antes de añadir el listener y cargar datos
+    if (entradaIdFestivalPOS) {
+        // Listener para cambios en el ID del festival: recarga datos
+        entradaIdFestivalPOS.addEventListener('change', () => {
+            // Limpiar errores y datos anteriores antes de cargar los nuevos
+            limpiarResultado(divErrorFestival);
+            limpiarResultado(divErrorEntradas);
+            divDetallesFestival.innerHTML = ''; // Limpiar detalles
+            divListaEntradas.innerHTML = ''; // Limpiar lista de tipos
+            selectTipoEntradaCompra.innerHTML = '<option value="">Seleccione un tipo...</option>'; // Resetear select
+            selectTipoEntradaCompra.disabled = true;
+            limpiarResultado(divResultadoPago); // Limpiar resultado de pago anterior
+
+            // Recargar datos con el nuevo ID
+            cargarDetallesFestival();
+            cargarTiposEntrada();
+        });
+
+        // Carga inicial de datos usando el valor por defecto del input
+        cargarDetallesFestival();
+        cargarTiposEntrada();
+    } else {
+        // Error crítico si falta el input principal
+        console.error("Error crítico: Input #posFestivalId no encontrado en el DOM.");
+        if (divErrorFestival) mostrarMensaje(divErrorFestival, "Error: Falta el campo para introducir el ID del festival en la página.", true);
+    }
+
+    // Inicializar Stripe (siempre)
+    iniciarStripe();
+    // Renderizar entradas guardadas (si las hay)
+    mostrarEntradasGuardadas();
+
+    // Listeners para formularios y botones (verificar existencia)
+    if (formularioPago) {
+        formularioPago.addEventListener('submit', manejarEnvioPago);
+    } else { console.error("Error: No se encontró formularioPago."); }
+
+    if (formularioNominarEntrada) {
+        formularioNominarEntrada.addEventListener('submit', manejarNominarEntrada);
+    } else { console.warn("Elemento formularioNominarEntrada no encontrado."); }
+
+    if (botonLimpiarEntradas) {
+        botonLimpiarEntradas.addEventListener('click', limpiarEntradasCompradas);
+    } else { console.warn("Elemento botonLimpiarEntradas no encontrado."); }
 });
