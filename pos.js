@@ -95,7 +95,6 @@ function mostrarResultadoGeneral(datos, esError = false) {
 function mostrarResultadoEspecifico(divDestino, mensaje, esError) {
     if (divDestino) {
         divDestino.textContent = mensaje;
-        // Asegúrate de que estas clases CSS existan o adapta los nombres
         divDestino.className = `section-result ${esError ? 'error' : 'success'}`;
     }
 }
@@ -104,7 +103,6 @@ function mostrarResultadoEspecifico(divDestino, mensaje, esError) {
 function mostrarEstadoNFC(divDestino, mensaje, tipo = 'info') {
     if (divDestino) {
         divDestino.textContent = mensaje;
-        // Usa las clases definidas en el CSS: info, success, warning, error
         divDestino.className = `nfc-status ${tipo}`;
     }
 }
@@ -145,8 +143,7 @@ async function peticionApiConAutenticacion(url, opciones = {}) {
             if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/json';
             // Convertir a JSON string si no lo es ya
             if (typeof opciones.body !== 'string') opciones.body = JSON.stringify(opciones.body);
-        }
-        // Nota: Si es FormData, fetch lo maneja automáticamente, incluyendo Content-Type (multipart/form-data)
+        }      
     }
 
     const opcionesFetch = { ...opciones, headers: cabeceras };
@@ -187,7 +184,7 @@ async function peticionApiConAutenticacion(url, opciones = {}) {
         }
 
         console.log("Petición API exitosa", datosRespuesta);
-        return datosRespuesta; // Devolver los datos procesados
+        return datosRespuesta; 
 
     } catch (error) {
         console.error('Error en peticionApiConAutenticacion:', error);
@@ -239,10 +236,8 @@ async function leerEtiquetaNFC(inputElement, statusElement) {
 
         // Añadir listener para cuando se lee una etiqueta correctamente
         ndef.addEventListener("reading", ({ message, serialNumber }) => {
-            console.log(`NFC: Número de serie leído: ${serialNumber}`);
-            // El serialNumber es a menudo la mejor aproximación al UID físico de la etiqueta.
-            // Puede ser una cadena hexadecimal. Adaptar si la API espera otro formato.
-            const uidNFC = serialNumber || "N/A"; // Usar serialNumber como UID
+            console.log(`NFC: Número de serie leído: ${serialNumber}`);      
+            const uidNFC = serialNumber || "N/A"; 
 
             // Rellenar el campo de texto correspondiente con el valor leído
             if (inputElement) {
@@ -253,10 +248,9 @@ async function leerEtiquetaNFC(inputElement, statusElement) {
                 mostrarEstadoNFC(statusElement, `NFC: Etiqueta leída (UID aprox: ${uidNFC}), pero no se encontró el campo de destino.`, 'warning');
             }
 
-            // Opcional: Detener el escaneo después de una lectura exitosa.
-            // Comenta o descomenta la siguiente línea según prefieras escanear una vez o continuamente.
-            // ndef.abort(); // Podrías usar abort() para detener el escaneo
-            // console.log("NFC: Escaneo detenido después de la lectura.");
+            // Detener el escaneo después de una lectura exitosa
+            ndef.abort(); 
+            console.log("NFC: Escaneo detenido después de la lectura.");
         });
 
     } catch (error) {
@@ -287,16 +281,15 @@ async function manejarLogin(evento) {
         const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/auth/login`, { method: 'POST', body: credenciales });
         if (datos && datos.token) {
             almacenarToken(datos.token);
-            mostrarResultadoGeneral("Login exitoso. Token recibido.", false); // Mensaje de éxito general
+            mostrarResultadoGeneral("Login exitoso. Token recibido.", false); 
         } else {
             console.error("Respuesta de login inesperada (sin token):", datos);
             mostrarResultadoGeneral("Error: Respuesta de login inesperada del servidor.", true);
             limpiarToken();
         }
     } catch (error) {
-        // El error ya se logueó en peticionApiConAutenticacion, aquí lo mostramos en el área general
         mostrarResultadoGeneral(`Error en login: ${error.message}`, true);
-        limpiarToken(); // Asegurarse de limpiar el token si el login falla
+        limpiarToken(); 
     }
 }
 
@@ -305,16 +298,16 @@ function manejarCierreSesion() {
     limpiarToken();
     mostrarResultadoGeneral("Sesión cerrada.");
     limpiarResultadosEspecificos();
-    limpiarEstadosNFC(); // Limpiar también los estados NFC
+    limpiarEstadosNFC(); 
 }
 
 /** Maneja la consulta de saldo de una pulsera. */
 async function manejarConsultarSaldo(evento) {
     evento.preventDefault();
-    const uid = inputCheckUid.value; // Usar la referencia directa al input
-    limpiarResultadosEspecificos(); // Limpiar resultados de operaciones anteriores
-    limpiarEstadosNFC(); // Limpiar mensajes NFC anteriores
-    areaResultadoGeneral.innerHTML = ''; areaResultadoGeneral.className = ''; // Limpiar área general
+    const uid = inputCheckUid.value; 
+    limpiarResultadosEspecificos(); 
+    limpiarEstadosNFC(); 
+    areaResultadoGeneral.innerHTML = ''; areaResultadoGeneral.className = ''; 
 
     if (!uid) {
         mostrarResultadoEspecifico(divResultadoConsulta, "Por favor, introduce o escanea un UID de pulsera.", true);
@@ -346,7 +339,7 @@ async function manejarConsultarSaldo(evento) {
 async function manejarRecarga(evento) {
     evento.preventDefault();
     const datosFormulario = new FormData(formularioRecarga);
-    const uid = datosFormulario.get('codigoUid'); // O inputRechargeUid.value
+    const uid = datosFormulario.get('codigoUid'); 
     const idFestival = entradaIdFestivalTPV.value;
     limpiarResultadosEspecificos();
     limpiarEstadosNFC();
@@ -388,8 +381,7 @@ async function manejarRecarga(evento) {
         } else {
             mostrarResultadoEspecifico(divResultadoRecarga, "Recarga procesada, pero no se recibió el nuevo saldo.", true);
         }
-        // No hacer reset completo para mantener el método de pago seleccionado
-        // formularioRecarga.reset();
+       
     } catch (error) {
         mostrarResultadoEspecifico(divResultadoRecarga, `Error al recargar: ${error.message}`, true);
     }
@@ -399,7 +391,7 @@ async function manejarRecarga(evento) {
 async function manejarConsumo(evento) {
     evento.preventDefault();
     const datosFormulario = new FormData(formularioConsumo);
-    const uid = datosFormulario.get('codigoUid'); // O inputConsumeUid.value
+    const uid = datosFormulario.get('codigoUid'); 
     const idFestival = entradaIdFestivalTPV.value;
     limpiarResultadosEspecificos();
     limpiarEstadosNFC();
@@ -452,8 +444,7 @@ async function manejarConsumo(evento) {
         } else {
             mostrarResultadoEspecifico(divResultadoConsumo, "Consumo procesado, pero no se recibió el nuevo saldo.", true);
         }
-        // No hacer reset completo para mantener ID punto de venta si se usa
-        // formularioConsumo.reset();
+        
     } catch (error) {
         mostrarResultadoEspecifico(divResultadoConsumo, `Error al consumir: ${error.message}`, true);
     }
