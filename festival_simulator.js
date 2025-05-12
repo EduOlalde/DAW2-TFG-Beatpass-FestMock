@@ -1,22 +1,22 @@
 /**
  * simulador_festival.js
- * Lógica para el simulador de compra y nominación de entradas,
- * incluyendo el flujo de pago con Stripe y la visualización de entradas compradas.
- * Versión con ID de Festival dinámico leído desde el input #entradaIdFestivalPOS.
+ * Lógica para el simulador de compra y nominación de entradas de festivales,
+ * incluyendo el flujo de pago con Stripe y la visualización de entradas.
+ * Utiliza un ID de Festival dinámico leído desde un input.
  */
 
 // --- Configuración ---
 const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para pruebas locales
-const CLAVE_PUBLICABLE_STRIPE = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX'; // Reemplazar con tu clave real
+// const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para pruebas locales
+const CLAVE_PUBLICABLE_STRIPE = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX'; // Reemplazar con tu clave publicable real
 
 // --- Variables Globales ---
-let entradasCompradas = JSON.parse(localStorage.getItem('entradasCompradas') || '[]'); // Entradas compradas en esta sesión
-let stripe = null; // Instancia de Stripe
-let elementoTarjeta = null; // Elemento de tarjeta de Stripe
+let entradasCompradas = JSON.parse(localStorage.getItem('entradasCompradas') || '[]'); // Entradas guardadas localmente
+let stripe = null; // Instancia de Stripe.js
+let elementoTarjeta = null; // Elemento de tarjeta de Stripe Elements
 
 // --- Selectores del DOM ---
-const entradaIdFestivalPOS = document.getElementById('posFestivalId'); // Mantenido ID original para compatibilidad HTML
+const entradaIdFestivalPOS = document.getElementById('posFestivalId'); // Input para el ID del festival
 const divDetallesFestival = document.getElementById('festival-details');
 const divErrorFestival = document.getElementById('festival-error');
 const divListaEntradas = document.getElementById('ticket-list');
@@ -41,19 +41,24 @@ const divResultadoNominacion = document.getElementById('nominate-result');
 
 // --- Funciones Auxiliares de UI ---
 
-/** Muestra un mensaje al usuario en un elemento específico. */
+/**
+ * Muestra un mensaje al usuario en un elemento específico del DOM.
+ * @param {HTMLElement} elemento - El elemento donde mostrar el mensaje.
+ * @param {string} mensaje - El mensaje a mostrar (puede contener HTML simple).
+ * @param {boolean} esError - Indica si el mensaje es de error (true) o éxito/info (false).
+ */
 function mostrarMensaje(elemento, mensaje, esError) {
     if (!elemento) return;
     elemento.innerHTML = '';
     const p = document.createElement('p');
-    p.innerHTML = mensaje; // Usar innerHTML para permitir HTML simple
+    p.innerHTML = mensaje; // Usar innerHTML para permitir HTML
     elemento.appendChild(p);
     elemento.className = `message-box ${esError ? 'error-message' : 'success-message'}`;
     elemento.style.display = 'block';
     if (esError) console.error("Mensaje UI (Error):", mensaje);
 }
 
-/** Limpia un elemento de mensaje. */
+/** Limpia un elemento de mensaje previamente mostrado. */
 function limpiarResultado(elemento) {
     if (elemento) {
         elemento.innerHTML = '';
@@ -62,7 +67,10 @@ function limpiarResultado(elemento) {
     }
 }
 
-/** Controla el estado visual del botón de envío (activo/cargando). */
+/**
+ * Controla el estado visual del botón de envío (activo/cargando).
+ * @param {boolean} estaCargando - True para mostrar estado de carga, false para estado normal.
+ */
 function establecerEstadoCarga(estaCargando) {
     if (!botonEnviar || !textoBoton || !spinner) return;
     if (estaCargando) {
@@ -79,23 +87,32 @@ function establecerEstadoCarga(estaCargando) {
 }
 
 // --- Función para obtener el ID del Festival actual ---
-/** Lee y valida el ID del festival desde el input #entradaIdFestivalPOS. */
+/**
+ * Lee y valida el ID del festival desde el input correspondiente.
+ * @returns {number|null} El ID del festival como número o null si es inválido.
+ */
 function obtenerIdFestivalActual() {
     if (!entradaIdFestivalPOS) {
-        console.error("Input #posFestivalId no encontrado."); // Mantenido ID original
+        console.error("Input #posFestivalId no encontrado.");
         return null;
     }
     const idFestival = parseInt(entradaIdFestivalPOS.value, 10);
     if (isNaN(idFestival) || idFestival <= 0) {
         console.warn("ID de festival inválido en el input:", entradaIdFestivalPOS.value);
-        return null; // Retorna null si no es un número válido o es <= 0
+        return null;
     }
     return idFestival;
 }
 
 
 // --- Funciones de API ---
-/** Realiza una petición fetch a la API, manejando JSON y errores comunes. */
+/**
+ * Realiza una petición fetch a la API, manejando JSON y errores comunes.
+ * Configura automáticamente Content-Type para JSON o URLSearchParams si no se especifica.
+ * @param {string} url - La URL completa del endpoint.
+ * @param {object} [opciones={}] - Opciones para la función fetch (method, body, headers, etc.).
+ * @returns {Promise<any>} Promesa que resuelve con los datos de la respuesta o rechaza con un error.
+ */
 async function peticionApi(url, opciones = {}) {
     // Configuración automática de Content-Type si no se especifica
     const cabeceras = { ...(opciones.headers || {}) };
@@ -132,7 +149,6 @@ async function peticionApi(url, opciones = {}) {
         // Manejo de errores HTTP (status no OK)
         if (!respuesta.ok) {
             console.error(`API Error Response ${respuesta.status} for ${url}:`, datosRespuesta);
-            // Intenta obtener un mensaje de error significativo de la respuesta
             const mensajeError = (typeof datosRespuesta === 'object' && datosRespuesta?.error) ? datosRespuesta.error : (typeof datosRespuesta === 'string' && datosRespuesta.length < 200 && datosRespuesta.length > 0 ? datosRespuesta : `Error ${respuesta.status}`);
             throw new Error(mensajeError || `HTTP error! status: ${respuesta.status}`);
         }
@@ -146,7 +162,7 @@ async function peticionApi(url, opciones = {}) {
 
 // --- Funciones de Carga de Datos ---
 
-/** Carga y muestra los detalles del festival actual. */
+/** Carga y muestra los detalles del festival actual obtenido del input. */
 async function cargarDetallesFestival() {
     limpiarResultado(divErrorFestival);
     divDetallesFestival.textContent = 'Cargando detalles del festival...';
@@ -170,12 +186,10 @@ async function cargarDetallesFestival() {
                 <p><strong class="font-medium text-gray-700">Estado:</strong> <span class="font-semibold ${festival.estado === 'PUBLICADO' ? 'text-green-600' : 'text-red-600'}">${festival.estado || 'N/A'}</span></p>
             `;
         } else {
-            // Manejo de respuesta inesperada
             mostrarMensaje(divErrorFestival, 'No se pudieron cargar los detalles del festival (respuesta inesperada).', true);
             divDetallesFestival.textContent = '';
         }
     } catch (error) {
-        // Manejo de error en la petición
         mostrarMensaje(divErrorFestival, `Error al cargar detalles del festival (ID: ${idFestival}): ${error.message}`, true);
         divDetallesFestival.textContent = '';
     }
@@ -240,7 +254,6 @@ async function cargarTiposEntrada() {
             selectTipoEntradaCompra.disabled = true;
         }
     } catch (error) {
-        // Manejo de error en la petición
         mostrarMensaje(divErrorEntradas, `Error al cargar tipos de entrada (ID: ${idFestival}): ${error.message}`, true);
         divListaEntradas.innerHTML = '';
         selectTipoEntradaCompra.innerHTML = '<option value="">Error al cargar</option>';
@@ -249,11 +262,10 @@ async function cargarTiposEntrada() {
 }
 
 // --- Inicialización de Stripe ---
-/** Inicializa Stripe.js y monta el elemento de tarjeta. */
+/** Inicializa Stripe.js y monta el elemento de tarjeta en el DOM. */
 function iniciarStripe() {
-    // Validar que la clave publicable esté configurada
-    if (!CLAVE_PUBLICABLE_STRIPE || CLAVE_PUBLICABLE_STRIPE === 'pk_test_TU_CLAVE_PUBLICABLE_AQUI') {
-        console.error("¡ERROR! Clave publicable de Stripe no configurada. Reemplaza el placeholder en simulador_festival.js.");
+    if (!CLAVE_PUBLICABLE_STRIPE || CLAVE_PUBLICABLE_STRIPE.startsWith('pk_test_TU_CLAVE')) {
+        console.error("¡ERROR! Clave publicable de Stripe no configurada.");
         mostrarMensaje(divResultadoPago, "Error de configuración: Falta la clave publicable de Stripe.", true);
         if (botonEnviar) botonEnviar.disabled = true;
         return;
@@ -261,32 +273,28 @@ function iniciarStripe() {
     try {
         stripe = Stripe(CLAVE_PUBLICABLE_STRIPE);
         const elementos = stripe.elements();
-        // Estilos para el elemento de tarjeta
         const estilo = {
             base: { color: '#32325d', fontFamily: '"Inter", sans-serif', fontSmoothing: 'antialiased', fontSize: '16px', '::placeholder': { color: '#aab7c4' } },
             invalid: { color: '#fa755a', iconColor: '#fa755a' }
         };
         elementoTarjeta = elementos.create('card', { style: estilo });
 
-        // Montar el elemento en el contenedor del DOM
         if (contenedorElementoTarjeta) {
             elementoTarjeta.mount('#card-element');
         } else {
-            console.error("Error: No se encontró el contenedor #card-element en el HTML.");
+            console.error("Error: No se encontró el contenedor #card-element.");
             throw new Error("Contenedor de Stripe no encontrado.");
         }
 
-        // Escuchar cambios en el CardElement y mostrar errores
+        // Escuchar cambios en el CardElement y mostrar errores de validación
         elementoTarjeta.on('change', (evento) => {
             if (divErroresTarjeta) {
-                if (evento.error) { divErroresTarjeta.textContent = evento.error.message; }
-                else { divErroresTarjeta.textContent = ''; }
+                divErroresTarjeta.textContent = evento.error ? evento.error.message : '';
             }
         });
     } catch (error) {
-        // Manejo de error en la inicialización de Stripe
         console.error("Error inicializando Stripe Elements:", error);
-        mostrarMensaje(divResultadoPago, `Error al inicializar el sistema de pago: ${error.message}. Por favor, recarga la página.`, true);
+        mostrarMensaje(divResultadoPago, `Error al inicializar el sistema de pago: ${error.message}.`, true);
         if (botonEnviar) botonEnviar.disabled = true;
     }
 }
@@ -295,11 +303,8 @@ function iniciarStripe() {
 
 /**
  * Maneja el envío del formulario de pago.
- * 1. Obtiene datos del formulario y valida.
- * 2. Llama al backend para crear un PaymentIntent (/iniciar-pago).
- * 3. Confirma el pago con tarjeta usando Stripe.js.
- * 4. Si Stripe confirma, llama al backend para registrar la compra (/confirmar-compra).
- * 5. Procesa las entradas generadas (genera QR, guarda localmente, renderiza).
+ * Realiza el flujo completo: iniciar pago en backend, confirmar con Stripe, confirmar en backend.
+ * @param {Event} evento - El evento de envío del formulario.
  */
 async function manejarEnvioPago(evento) {
     evento.preventDefault();
@@ -307,29 +312,22 @@ async function manejarEnvioPago(evento) {
     limpiarResultado(divResultadoPago);
     if (divErroresTarjeta) divErroresTarjeta.textContent = '';
 
-    // Verificar que Stripe esté listo
     if (!stripe || !elementoTarjeta) {
         mostrarMensaje(divResultadoPago, "Error: El sistema de pago no está listo. Intenta recargar.", true);
         establecerEstadoCarga(false);
         return;
     }
 
-    // 1. Obtener ID del festival y datos del formulario
+    // 1. Obtener datos del formulario y validar
     const idFestival = obtenerIdFestivalActual();
-    const idTipoEntrada = selectTipoEntradaCompra.value; // ID del TIPO de entrada
+    const idTipoEntrada = selectTipoEntradaCompra.value;
     const cantidad = parseInt(entradaCantidadCompra.value, 10);
     const emailAsistente = entradaEmailCompra.value;
     const nombreAsistente = entradaNombreCompra.value;
     const telefonoAsistente = entradaTelefonoCompra.value;
 
-    // Validaciones básicas
-    if (!idFestival) {
-        mostrarMensaje(divResultadoPago, "Error: No se ha especificado un ID de festival válido.", true);
-        establecerEstadoCarga(false);
-        return;
-    }
-    if (!idTipoEntrada || cantidad <= 0 || !emailAsistente || !nombreAsistente) {
-        mostrarMensaje(divResultadoPago, "Por favor, completa todos los campos obligatorios (tipo de entrada, cantidad, email, nombre).", true);
+    if (!idFestival || !idTipoEntrada || cantidad <= 0 || !emailAsistente || !nombreAsistente) {
+        mostrarMensaje(divResultadoPago, "Por favor, completa todos los campos obligatorios.", true);
         establecerEstadoCarga(false);
         return;
     }
@@ -337,7 +335,7 @@ async function manejarEnvioPago(evento) {
     let secretoCliente = null;
 
     try {
-        // 2. Llamar al backend para iniciar el pago (crear PaymentIntent)
+        // 2. Iniciar el pago en el backend (crear PaymentIntent)
         const respuestaIniciarPago = await peticionApi(`${URL_BASE_API}/public/venta/iniciar-pago`, {
             method: 'POST',
             body: JSON.stringify({ idEntrada: parseInt(idTipoEntrada, 10), cantidad: cantidad }),
@@ -351,7 +349,6 @@ async function manejarEnvioPago(evento) {
             secretoCliente, { payment_method: { card: elementoTarjeta } }
         );
 
-        // Manejar error de Stripe
         if (errorStripe) {
             console.error("Error de Stripe al confirmar pago:", errorStripe);
             if (divErroresTarjeta) divErroresTarjeta.textContent = errorStripe.message || "Error desconocido durante el pago.";
@@ -362,9 +359,9 @@ async function manejarEnvioPago(evento) {
 
         // 4. Si el pago con Stripe fue exitoso (status 'succeeded')
         if (intentoPago && intentoPago.status === 'succeeded') {
-            // 5. Llamar al backend para confirmar la compra en nuestro sistema
+            // 5. Confirmar la compra en nuestro backend
             const datosConfirmacionBackend = new URLSearchParams({
-                idFestival: idFestival.toString(), // Usar el ID dinámico
+                idFestival: idFestival.toString(),
                 idEntrada: idTipoEntrada,
                 cantidad: cantidad.toString(),
                 emailAsistente: emailAsistente,
@@ -377,10 +374,9 @@ async function manejarEnvioPago(evento) {
                 body: datosConfirmacionBackend
             });
 
-            // 6. Mostrar éxito y procesar entradas generadas
-            mostrarMensaje(divResultadoPago, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. Añadiendo entradas a la lista...`, false);
+            // 6. Mostrar éxito y procesar entradas generadas localmente
+            mostrarMensaje(divResultadoPago, `¡Compra confirmada! ID Compra: ${compraConfirmada.idCompra}.`, false);
 
-            // --- INICIO: Procesar entradas generadas ---
             if (compraConfirmada.entradasGeneradas && Array.isArray(compraConfirmada.entradasGeneradas)) {
                 const nuevasEntradasParaMostrar = [];
                 // Generar QRs y preparar datos para guardar localmente
@@ -389,11 +385,11 @@ async function manejarEnvioPago(evento) {
                     const entradaLocal = {
                         idEntradaAsignada: entradaDTO.idEntradaAsignada,
                         codigoQr: entradaDTO.codigoQr,
-                        estado: entradaDTO.estado, // Estado devuelto por la API
+                        estado: entradaDTO.estado, // Estado real de la API
                         tipoEntradaOriginal: entradaDTO.tipoEntradaOriginal,
                         urlDatosImagenQr: urlDatosImagenQr, // URL del QR generado
-                        nombreAsistente: entradaDTO.nombreAsistente, // Puede ser null inicialmente
-                        emailAsistente: entradaDTO.emailAsistente, // Puede ser null inicialmente
+                        nombreAsistente: entradaDTO.nombreAsistente, // Puede ser null
+                        emailAsistente: entradaDTO.emailAsistente, // Puede ser null
                         estadoVisual: '' // Estado visual temporal (ej. 'Nominada')
                     };
                     nuevasEntradasParaMostrar.push(entradaLocal);
@@ -404,10 +400,8 @@ async function manejarEnvioPago(evento) {
                 localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
                 mostrarEntradasGuardadas(); // Actualizar la lista visual
             } else {
-                console.warn("La respuesta de confirmación no contenía la lista 'entradasGeneradas'.");
-                mostrarMensaje(divResultadoPago, `¡Compra confirmada con éxito! ID Compra: ${compraConfirmada.idCompra}. (No se recibieron detalles de entradas generadas).`, false);
+                console.warn("La respuesta de confirmación no contenía 'entradasGeneradas'.");
             }
-            // --- FIN: Procesar entradas generadas ---
 
             // Limpiar formulario y recargar tipos de entrada (para stock)
             if (formularioPago) formularioPago.reset();
@@ -416,12 +410,11 @@ async function manejarEnvioPago(evento) {
 
         } else {
             // Caso raro: Stripe no da error pero el intent no está 'succeeded'
-            console.warn("Estado inesperado del PaymentIntent tras confirmación:", intentoPago?.status);
-            mostrarMensaje(divResultadoPago, `El pago no se completó del todo (Estado: ${intentoPago?.status || 'desconocido'}). Contacta con soporte.`, true);
+            console.warn("Estado inesperado del PaymentIntent:", intentoPago?.status);
+            mostrarMensaje(divResultadoPago, `El pago no se completó (Estado: ${intentoPago?.status || 'desconocido'}).`, true);
         }
 
     } catch (error) {
-        // Captura errores de peticionApi o Stripe no controlados antes
         console.error("Error en el proceso de pago completo:", error);
         mostrarMensaje(divResultadoPago, `Error procesando la compra: ${error.message || 'Error desconocido'}`, true);
     } finally {
@@ -431,10 +424,8 @@ async function manejarEnvioPago(evento) {
 
 // --- Manejador de Nominación ---
 /**
- * Maneja el envío del formulario de nominación.
- * 1. Obtiene datos del formulario.
- * 2. Llama al backend para nominar la entrada (/public/venta/nominar).
- * 3. Muestra el resultado y actualiza la entrada en la lista local.
+ * Maneja el envío del formulario de nominación de una entrada.
+ * @param {Event} evento - El evento de envío del formulario.
  */
 async function manejarNominarEntrada(evento) {
     evento.preventDefault();
@@ -456,7 +447,6 @@ async function manejarNominarEntrada(evento) {
         if (formularioNominarEntrada) formularioNominarEntrada.reset(); // Limpiar formulario
 
         // Actualizar visualmente la entrada en la lista "Mis Entradas"
-        // Pasamos los datos del nominado para actualizar la visualización
         const datosNominado = {
             nombreNominado: datosFormulario.get('nombreNominado'),
             emailNominado: datosFormulario.get('emailNominado')
@@ -464,10 +454,8 @@ async function manejarNominarEntrada(evento) {
         actualizarEstadoEntradaComprada(datosFormulario.get('codigoQr'), 'Nominada', datosNominado);
 
     } catch (error) {
-        // Manejo de error en la nominación
         mostrarMensaje(divResultadoNominacion, `Error al nominar: ${error.message}`, true);
     } finally {
-        // Reactivar el botón
         if (botonEnviarNominacion) {
             botonEnviarNominacion.disabled = false; botonEnviarNominacion.textContent = 'Nominar Entrada';
         }
@@ -478,27 +466,27 @@ async function manejarNominarEntrada(evento) {
 
 /**
  * Genera la URL de datos Base64 para una imagen QR usando qrcode-generator.
- * Requiere que la librería qrcode-generator esté incluida en el HTML.
- * <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+ * Requiere <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+ * @param {string} texto - El texto a codificar en el QR.
+ * @returns {Promise<string|null>} La URL de datos de la imagen QR o null si hay error.
  */
 async function generarUrlDatosQr(texto) {
-    // Comprobar si la librería está cargada
     if (typeof qrcode === 'undefined') {
-        console.error("Librería qrcode-generator no cargada. Asegúrate de incluir el script en tu HTML.");
-        return null; // Retorna null si la librería no está disponible
+        console.error("Librería qrcode-generator no cargada.");
+        return null;
     }
-    if (!texto) return null; // No generar QR si no hay texto
+    if (!texto) return null;
 
     try {
-        const qr = qrcode(0, 'M'); // typeNumber 0 (auto-detect), errorCorrectionLevel 'M' (Medium)
+        const qr = qrcode(0, 'M'); // typeNumber 0 (auto), errorCorrectionLevel 'M'
         qr.addData(texto);
         qr.make();
         // createDataURL(cellSize, margin)
-        const urlDatos = qr.createDataURL(4, 2); // Tamaño de celda 4px, margen de 2 módulos
+        const urlDatos = qr.createDataURL(4, 2); // Tamaño celda 4px, margen 2 módulos
         return urlDatos;
     } catch (error) {
         console.error("Error generando imagen QR para:", texto, error);
-        return null; // Retorna null en caso de error
+        return null;
     }
 }
 
@@ -508,22 +496,21 @@ async function mostrarEntradasGuardadas() {
 
     divListaMisEntradas.innerHTML = ''; // Limpiar antes de re-renderizar
     if (entradasCompradas.length === 0) {
-        seccionMisEntradas.style.display = 'none'; // Ocultar sección si no hay entradas
+        seccionMisEntradas.style.display = 'none';
         return;
     }
-    seccionMisEntradas.style.display = 'block'; // Mostrar sección si hay entradas
+    seccionMisEntradas.style.display = 'block';
 
     // Mapear cada entrada a una promesa que resuelve con el HTML de su tarjeta
-    // Esto permite generar los QR que falten de forma asíncrona
     const promesasHtmlTarjetasEntrada = entradasCompradas.map(async (entrada) => {
-        // Generar URL de imagen QR si no existe en el objeto local O si es null
+        // Generar URL de imagen QR si no existe o es null
         if (!entrada.urlDatosImagenQr && entrada.codigoQr) {
             entrada.urlDatosImagenQr = await generarUrlDatosQr(entrada.codigoQr);
-            // Opcional: Actualizar localStorage si se genera un QR nuevo (puede ser costoso)
+            // Opcional: Actualizar localStorage si se genera un QR nuevo
             // localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
         }
 
-        // Construir el HTML de la tarjeta para esta entrada
+        // Construir el HTML de la tarjeta
         return `
             <div class="ticket-card grid grid-cols-1 md:grid-cols-3 gap-4 items-center border-b last:border-b-0 py-4">
                 <div class="md:col-span-2 space-y-1">
@@ -538,14 +525,14 @@ async function mostrarEntradasGuardadas() {
                 <div class="text-center md:text-right">
                     ${entrada.urlDatosImagenQr
                 ? `<img src="${entrada.urlDatosImagenQr}" alt="QR Entrada ${entrada.idEntradaAsignada}" class="w-24 h-24 inline-block border border-gray-300 p-1 bg-white qr-image-display" width="96" height="96">`
-                : `<span class="text-xs text-gray-400 italic">(No se pudo generar QR)</span>` // Mensaje si falla la generación del QR
+                : `<span class="text-xs text-gray-400 italic">(No se pudo generar QR)</span>`
             }
                 </div>
             </div>
         `;
     });
 
-    // Esperar a que todas las promesas HTML (incluida la generación de QR) se resuelvan
+    // Esperar a que todas las promesas HTML se resuelvan
     const htmlTarjetasEntrada = await Promise.all(promesasHtmlTarjetasEntrada);
 
     // Añadir todo el HTML generado al contenedor
@@ -555,7 +542,7 @@ async function mostrarEntradasGuardadas() {
 
 /** Limpia las entradas guardadas localmente (simulación). */
 function limpiarEntradasCompradas() {
-    if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación? (Esto solo afecta a la visualización local)')) {
+    if (confirm('¿Seguro que quieres borrar las entradas compradas de esta simulación?')) {
         entradasCompradas = [];
         localStorage.removeItem('entradasCompradas');
         mostrarEntradasGuardadas(); // Re-renderizar para ocultar la sección
@@ -565,8 +552,8 @@ function limpiarEntradasCompradas() {
 /**
  * Actualiza el estado visual temporal y/o los datos del nominado de una entrada en la lista local.
  * @param {string} codigoQr - El código QR de la entrada a actualizar.
- * @param {string} estadoVisual - El estado visual a mostrar (ej. 'Nominada', 'Validada').
- * @param {object|null} datosNominado - Objeto con {nombreNominado, emailNominado} o null.
+ * @param {string} estadoVisual - El estado visual a mostrar (ej. 'Nominada').
+ * @param {object|null} [datosNominado=null] - Objeto con {nombreNominado, emailNominado} o null.
  */
 function actualizarEstadoEntradaComprada(codigoQr, estadoVisual, datosNominado = null) {
     let encontrado = false;
@@ -579,7 +566,7 @@ function actualizarEstadoEntradaComprada(codigoQr, estadoVisual, datosNominado =
                 entradaActualizada.nombreAsistente = datosNominado.nombreNominado;
                 entradaActualizada.emailAsistente = datosNominado.emailNominado;
                 // Podríamos querer actualizar el estado API local también si la nominación lo cambia
-                // entradaActualizada.estado = 'NOMINADA'; // O el estado que devuelva la API
+                // entradaActualizada.estado = 'NOMINADA';
             }
             return entradaActualizada;
         }
@@ -591,7 +578,7 @@ function actualizarEstadoEntradaComprada(codigoQr, estadoVisual, datosNominado =
         localStorage.setItem('entradasCompradas', JSON.stringify(entradasCompradas));
         mostrarEntradasGuardadas();
     } else {
-        console.warn(`No se encontró la entrada con QR ${codigoQr} para actualizar estado visual/nominado.`);
+        console.warn(`No se encontró la entrada con QR ${codigoQr} para actualizar.`);
     }
 }
 
@@ -599,18 +586,17 @@ function actualizarEstadoEntradaComprada(codigoQr, estadoVisual, datosNominado =
 // --- Inicialización y Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Comprobar si el input del ID existe antes de añadir el listener y cargar datos
     if (entradaIdFestivalPOS) {
         // Listener para cambios en el ID del festival: recarga datos
         entradaIdFestivalPOS.addEventListener('change', () => {
-            // Limpiar errores y datos anteriores antes de cargar los nuevos
+            // Limpiar datos anteriores antes de cargar los nuevos
             limpiarResultado(divErrorFestival);
             limpiarResultado(divErrorEntradas);
-            divDetallesFestival.innerHTML = ''; // Limpiar detalles
-            divListaEntradas.innerHTML = ''; // Limpiar lista de tipos
-            selectTipoEntradaCompra.innerHTML = '<option value="">Seleccione un tipo...</option>'; // Resetear select
+            divDetallesFestival.innerHTML = '';
+            divListaEntradas.innerHTML = '';
+            selectTipoEntradaCompra.innerHTML = '<option value="">Seleccione un tipo...</option>';
             selectTipoEntradaCompra.disabled = true;
-            limpiarResultado(divResultadoPago); // Limpiar resultado de pago anterior
+            limpiarResultado(divResultadoPago);
 
             // Recargar datos con el nuevo ID
             cargarDetallesFestival();
@@ -621,14 +607,12 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarDetallesFestival();
         cargarTiposEntrada();
     } else {
-        // Error crítico si falta el input principal
-        console.error("Error crítico: Input #posFestivalId no encontrado en el DOM.");
-        if (divErrorFestival) mostrarMensaje(divErrorFestival, "Error: Falta el campo para introducir el ID del festival en la página.", true);
+        console.error("Error crítico: Input #posFestivalId no encontrado.");
+        if (divErrorFestival) mostrarMensaje(divErrorFestival, "Error: Falta el campo ID del festival.", true);
     }
 
-    // Inicializar Stripe (siempre)
+    // Inicializar Stripe y renderizar entradas guardadas
     iniciarStripe();
-    // Renderizar entradas guardadas (si las hay)
     mostrarEntradasGuardadas();
 
     // Listeners para formularios y botones (verificar existencia)
