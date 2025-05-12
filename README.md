@@ -14,7 +14,7 @@ El simulador proporciona dos interfaces web básicas para probar y demostrar las
     * Muestra las entradas "compradas" (guardadas localmente en el navegador) con su código QR.
     * Permite nominar una entrada comprada a un asistente específico usando el código QR.
 2.  **Simulador de Punto de Venta (POS) (`pos.html`):**
-    * Permite iniciar sesión como un usuario con rol CAJERO (o ADMIN/PROMOTOR) usando la API de autenticación JWT.
+    * Permite iniciar sesión como un usuario con rol CAJERO usando la API de autenticación JWT.
     * Una vez autenticado, permite realizar operaciones sobre pulseras NFC asociadas a un festival específico:
         * Consultar datos y saldo de una pulsera por su UID.
         * Registrar recargas de saldo.
@@ -49,8 +49,6 @@ Estos simuladores realizan llamadas a la API REST del backend de Beatpass TFG:
 Antes de usar los simuladores, necesitas configurar las siguientes constantes dentro de los archivos JavaScript (`festival_simulator.js` y `pos_simulator.js`):
 
 1.  **`API_BASE_URL`**: Debe apuntar a la URL base donde está desplegado tu backend Beatpass TFG (ej: `http://localhost:8080/BeatpassTFG/api` para pruebas locales o `https://tu-backend.onrender.com/api` para producción).
-2.  **`FESTIVAL_ID`** (en `festival_simulator.js`): Establece el ID del festival que quieres simular en la página de venta. Asegúrate de que este festival exista y esté en estado `PUBLICADO` en tu base de datos.
-3.  **`value` del input `posFestivalId`** (en `pos.html`): Establece el ID del festival para el cual operará el simulador POS. Asegúrate de que exista en tu base de datos. El JavaScript (`pos_simulator.js`) leerá este valor para las operaciones de recarga y consumo.
 
 ## Ejecución Local
 
