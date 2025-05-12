@@ -4,8 +4,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador POS - Beatpass</title>
+    <title>Simulador POS - Beatpass (con NFC)</title>
     <link rel="stylesheet" href="estilos.css">
+    <style>
+        .nfc-button {
+            /* Estilos para que el botón NFC sea un poco diferente si quieres */
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 5px;
+            /* Añade aquí más estilos si lo deseas */
+        }
+
+        .input-nfc-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            /* Espacio entre input y botón */
+            margin-bottom: 10px;
+            /* Espacio debajo del grupo */
+        }
+
+        .input-nfc-group .input-field-pos {
+            flex-grow: 1;
+            /* El input ocupa el espacio restante */
+            margin-bottom: 0;
+            /* Quitar margen inferior del input dentro del grupo */
+        }
+
+        .nfc-status {
+            font-size: 0.9em;
+            margin-top: 5px;
+            min-height: 1.2em;
+            /* Para evitar saltos de layout */
+        }
+
+        /* Clases para estados NFC */
+        .nfc-status.info {
+            color: #0056b3;
+        }
+
+        .nfc-status.success {
+            color: #155724;
+        }
+
+        .nfc-status.warning {
+            color: #856404;
+        }
+
+        .nfc-status.error {
+            color: #721c24;
+        }
+    </style>
 </head>
 
 <body>
@@ -43,13 +92,18 @@
                 style="max-width: 100px; display: inline-block; margin-right: 10px;">
             <span class="text-sm text-gray-600">(Usado para Recargas y Consumos)</span>
         </div>
+
         <div class="container">
             <h2>Consultar Datos Pulsera</h2>
             <form id="checkBalanceForm">
                 <label for="checkUid">Código UID Pulsera:</label>
-                <input type="text" id="checkUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
-                    class="input-field-pos">
-                <button type="submit" class="button-pos">Consultar</button>
+                <div class="input-nfc-group">
+                    <input type="text" id="checkUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
+                        class="input-field-pos">
+                    <button type="button" id="scanNfcCheck" class="button-pos nfc-button">Escanear NFC</button>
+                </div>
+                <div id="nfcStatusCheck" class="nfc-status"></div>
+                <button type="submit" class="button-pos" style="margin-top: 10px;">Consultar</button>
             </form>
             <div id="consultaResult" class="section-result"></div>
         </div>
@@ -58,8 +112,12 @@
             <h2>Recargar Pulsera</h2>
             <form id="rechargeForm">
                 <label for="rechargeUid">Código UID Pulsera:</label>
-                <input type="text" id="rechargeUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
-                    class="input-field-pos">
+                <div class="input-nfc-group">
+                    <input type="text" id="rechargeUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
+                        class="input-field-pos">
+                    <button type="button" id="scanNfcRecharge" class="button-pos nfc-button">Escanear NFC</button>
+                </div>
+                <div id="nfcStatusRecharge" class="nfc-status"></div>
 
                 <label for="rechargeAmount">Monto (€):</label>
                 <input type="number" id="rechargeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 20.50"
@@ -72,7 +130,7 @@
                     <option value="Otro">Otro</option>
                 </select>
 
-                <button type="submit" class="button-pos">Recargar</button>
+                <button type="submit" class="button-pos" style="margin-top: 10px;">Recargar</button>
             </form>
             <div id="recargaResult" class="section-result"></div>
         </div>
@@ -81,8 +139,12 @@
             <h2>Registrar Consumo</h2>
             <form id="consumeForm">
                 <label for="consumeUid">Código UID Pulsera:</label>
-                <input type="text" id="consumeUid" name="codigoUid" placeholder="Ej: A1B2C3D4" required
-                    class="input-field-pos">
+                <div class="input-nfc-group">
+                    <input type="text" id="consumeUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
+                        class="input-field-pos">
+                    <button type="button" id="scanNfcConsume" class="button-pos nfc-button">Escanear NFC</button>
+                </div>
+                <div id="nfcStatusConsume" class="nfc-status"></div>
 
                 <label for="consumeAmount">Monto (€):</label>
                 <input type="number" id="consumeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 5.00"
@@ -98,13 +160,12 @@
                 <input type="number" id="consumePosId" name="idPuntoVenta" placeholder="ID de este POS (si aplica)"
                     class="input-field-pos">
 
-                <button type="submit" class="button-pos">Consumir</button>
+                <button type="submit" class="button-pos" style="margin-top: 10px;">Consumir</button>
             </form>
             <div id="consumoResult" class="section-result"></div>
         </div>
 
     </div>
-
     <div class="container">
         <h2>Resultados API (Respuesta Completa)</h2>
         <div id="resultArea">Esperando acciones...</div>
