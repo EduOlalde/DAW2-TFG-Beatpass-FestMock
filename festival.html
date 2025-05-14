@@ -6,68 +6,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compra Entradas - Festival Ejemplo - Beatpass</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="estilos.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://js.stripe.com/v3/"></script>
-    <style>
-        /* Estilos para Stripe Elements */
-        #card-element {
-            border: 1px solid #d1d5db;
-            /* border-gray-300 */
-            border-radius: 0.375rem;
-            /* rounded-md */
-            padding: 0.75rem;
-            /* p-3 */
-            background-color: white;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        indigo: { // Coincidir con los colores primarios de estilos.css si es necesario
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
         }
-
-        #card-errors {
-            color: #b91c1c;
-            /* text-red-700 */
-            font-size: 0.875rem;
-            /* text-sm */
-            margin-top: 0.5rem;
-            /* mt-2 */
-        }
-    </style>
+    </script>
 </head>
 
 <body class="bg-gray-100 text-gray-900 p-4 md:p-8">
 
-    <div class="text-center mb-4">
-        <a href="pos.html" class="text-indigo-600 hover:text-indigo-800 underline">&rarr; Ir al Simulador POS</a>
-        <span class="mx-2 text-gray-400">|</span>
-        <a href="index.html" class="text-gray-600 hover:text-gray-800 underline">&larr; Volver al Inicio</a>
+    <div class="nav-links-container mb-6">
+        <a href="pos.html" class="nav-link">&rarr; Ir al Simulador POS</a>
+        <span class="separator">|</span>
+        <a href="index.html" class="nav-link">&larr; Volver al Inicio</a>
     </div>
 
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold text-indigo-700 mb-6 text-center">Compra de Entradas - Festival Ejemplo</h1>
+        <h1 class="text-3xl font-bold text-indigo-700 mb-8 text-center">Compra de Entradas - Festival Ejemplo</h1>
 
         <div id="selector-id-fest" class="card">
             <h2>Contexto del simulador</h2>
             <label for="posFestivalId">Operando para Festival ID:</label>
-            <input type="number" id="posFestivalId" name="posFestivalId" value="19" required class="input-field-pos"
-                style="max-width: 100px; display: inline-block; margin-right: 10px;">
-            <span class="text-sm text-gray-600"></span>
+            <div class="input-nfc-group" style="margin-bottom: 0;">
+                <input type="number" id="posFestivalId" name="posFestivalId" value="19" required class="input-field"
+                    style="max-width: 100px;">
+                <span class="text-sm-info">(ID del festival para cargar datos)</span>
+            </div>
         </div>
 
         <div id="festival-info" class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Información del Festival</h2>
+            <h2 class="text-2xl font-semibold mb-4">Información del Festival</h2>
             <div id="festival-details">Cargando...</div>
-            <div id="festival-error" class="message-box error-message" style="display: none;"></div>
+            <div id="festival-error" class="message-box" style="display: none;"></div>
         </div>
 
         <div id="ticket-types" class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Tipos de Entrada Disponibles</h2>
+            <h2 class="text-2xl font-semibold mb-4">Tipos de Entrada Disponibles</h2>
             <div id="ticket-list">Cargando...</div>
-            <div id="ticket-error" class="message-box error-message" style="display: none;"></div>
+            <div id="ticket-error" class="message-box" style="display: none;"></div>
         </div>
 
         <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Comprar Entradas</h2>
+            <h2 class="text-2xl font-semibold mb-4">Comprar Entradas</h2>
             <form id="payment-form">
                 <input type="hidden" id="buy-festival-id" name="idFestival" value="19">
 
@@ -108,33 +103,29 @@
                 <div id="card-element" class="mb-4">
                 </div>
 
-                <div id="card-errors" role="alert"></div>
-
-                <button id="submit-button" type="submit" class="button w-full mt-4">
-                    <span id="button-text">Pagar con Tarjeta</span>
-                    <span id="spinner" style="display: none;">Procesando...</span>
-                </button>
+                <div id="card-errors" role="alert" class="text-red-700 text-sm mt-2"></div> <button id="submit-button"
+                    type="submit" class="button primary w-full mt-4"> <span class="button-text">Pagar con Tarjeta</span>
+                    <span class="spinner" style="display: none;"></span> </button>
             </form>
             <div id="payment-result" class="message-box mt-4" style="display: none;"></div>
         </div>
 
         <div id="my-tickets-section" class="card" style="display: none;">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Mis Entradas Compradas (Esta Sesión)</h2>
+            <h2 class="text-2xl font-semibold mb-4">Mis Entradas Compradas (Esta Sesión)</h2>
             <div id="my-tickets-list">
             </div>
-            <button id="clear-tickets-button" class="button button-secondary mt-4 text-sm">Limpiar Entradas Compradas
+            <button id="clear-tickets-button" class="button secondary mt-4 text-sm">Limpiar Entradas Compradas
                 (Simulación)</button>
         </div>
 
         <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Nominar Entrada con QR</h2>
+            <h2 class="text-2xl font-semibold mb-4">Nominar Entrada con QR</h2>
             <form id="nominate-ticket-form">
                 <div class="mb-4">
                     <label for="nominate-qr">Código QR de la Entrada:</label>
                     <input type="text" id="nominate-qr" name="codigoQr" class="input-field"
                         placeholder="Pega aquí el código QR (BEATPASS-TICKET-...)" required>
-                    <p class="text-xs text-gray-500 mt-1">Puedes copiar el código QR de la sección "Mis Entradas
-                        Compradas".</p>
+                    <p class="text-xs-info mt-1">Puedes copiar el código QR de la sección "Mis Entradas Compradas".</p>
                 </div>
                 <h3 class="text-lg font-medium mb-2 text-gray-700">Datos del Nominado</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -154,7 +145,7 @@
                             placeholder="600112233">
                     </div>
                 </div>
-                <button type="submit" class="button">Nominar Entrada</button>
+                <button type="submit" class="button primary">Nominar Entrada</button>
             </form>
             <div id="nominate-result" class="message-box mt-4" style="display: none;"></div>
         </div>

@@ -6,65 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulador POS - Beatpass (con NFC)</title>
     <link rel="stylesheet" href="estilos.css">
-    <style>
-        .nfc-button {
-            /* Estilos para que el botón NFC sea un poco diferente si quieres */
-            padding: 5px 10px;
-            font-size: 0.9em;
-            margin-left: 5px;
-            /* Añade aquí más estilos si lo deseas */
-        }
-
-        .input-nfc-group {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            /* Espacio entre input y botón */
-            margin-bottom: 10px;
-            /* Espacio debajo del grupo */
-        }
-
-        .input-nfc-group .input-field-pos {
-            flex-grow: 1;
-            /* El input ocupa el espacio restante */
-            margin-bottom: 0;
-            /* Quitar margen inferior del input dentro del grupo */
-        }
-
-        .nfc-status {
-            font-size: 0.9em;
-            margin-top: 5px;
-            min-height: 1.2em;
-            /* Para evitar saltos de layout */
-        }
-
-        /* Clases para estados NFC */
-        .nfc-status.info {
-            color: #0056b3;
-        }
-
-        .nfc-status.success {
-            color: #155724;
-        }
-
-        .nfc-status.warning {
-            color: #856404;
-        }
-
-        .nfc-status.error {
-            color: #721c24;
-        }
-    </style>
 </head>
 
 <body>
 
     <h1>Simulador Punto de Venta (POS) - Beatpass</h1>
 
-    <div class="nav-links">
-        <a href="festival.html">&larr; Ir al Simulador Festival</a>
-        <span>|</span>
-        <a href="index.html">&larr; Volver al Inicio</a>
+    <div class="nav-links-container">
+        <a href="festival.html" class="nav-link">&larr; Ir al Simulador Festival</a>
+        <span class="separator">|</span>
+        <a href="index.html" class="nav-link">&larr; Volver al Inicio</a>
     </div>
 
 
@@ -72,15 +23,15 @@
         <h2>Login Cajero</h2>
         <form id="loginForm">
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" value="cajero@beatpass.com" required class="input-field-pos">
+            <input type="email" id="email" name="email" value="cajero@beatpass.com" required class="input-field">
 
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" value="pass" required class="input-field-pos">
+            <input type="password" id="password" name="password" value="pass" required class="input-field">
 
-            <button type="submit" class="button-pos">Login</button>
+            <button type="submit" class="button primary">Login</button>
         </form>
         <p>Estado: <span id="loginStatus" class="error">No autenticado</span></p>
-        <button id="logoutButton" style="display: none;" class="button-pos logout">Logout</button>
+        <button id="logoutButton" style="display: none;" class="button logout">Logout</button>
     </div>
 
     <div id="posOperations" style="display: none;">
@@ -88,9 +39,10 @@
         <div class="container">
             <h2>Contexto del POS</h2>
             <label for="posFestivalId">Operando para Festival ID:</label>
-            <input type="number" id="posFestivalId" name="posFestivalId" value="19" required class="input-field-pos"
-                style="max-width: 100px; display: inline-block; margin-right: 10px;">
-            <span class="text-sm text-gray-600">(Usado para Recargas y Consumos)</span>
+            <div class="input-nfc-group" style="margin-bottom: 0;"> <input type="number" id="posFestivalId"
+                    name="posFestivalId" value="1" required class="input-field" style="max-width: 100px;">
+                <span class="text-sm-info">(Usado para todas las operaciones POS)</span>
+            </div>
         </div>
 
         <div class="container">
@@ -99,13 +51,33 @@
                 <label for="checkUid">Código UID Pulsera:</label>
                 <div class="input-nfc-group">
                     <input type="text" id="checkUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
-                        class="input-field-pos">
-                    <button type="button" id="scanNfcCheck" class="button-pos nfc-button">Escanear NFC</button>
+                        class="input-field">
+                    <button type="button" id="scanNfcCheck" class="button nfc-button">Escanear NFC</button>
                 </div>
                 <div id="nfcStatusCheck" class="nfc-status"></div>
-                <button type="submit" class="button-pos" style="margin-top: 10px;">Consultar</button>
+                <button type="submit" class="button primary">Consultar</button>
             </form>
             <div id="consultaResult" class="section-result"></div>
+        </div>
+
+        <div class="container">
+            <h2>Asociar Pulsera a Entrada (QR)</h2>
+            <form id="asociarPulseraForm">
+                <label for="asociarQrEntrada">Código QR de la Entrada:</label>
+                <input type="text" id="asociarQrEntrada" name="codigoQrEntrada"
+                    placeholder="Escanea o introduce el código QR de la entrada" required class="input-field">
+
+                <label for="asociarUidPulsera">Código UID de la Pulsera:</label>
+                <div class="input-nfc-group">
+                    <input type="text" id="asociarUidPulsera" name="codigoUidPulsera"
+                        placeholder="Ej: A1B2C3D4 o escanea NFC" required class="input-field">
+                    <button type="button" id="scanNfcAsociar" class="button nfc-button">Escanear NFC</button>
+                </div>
+                <div id="nfcStatusAsociar" class="nfc-status"></div>
+
+                <button type="submit" class="button primary">Asociar Pulsera</button>
+            </form>
+            <div id="asociarResult" class="section-result"></div>
         </div>
 
         <div class="container">
@@ -114,23 +86,23 @@
                 <label for="rechargeUid">Código UID Pulsera:</label>
                 <div class="input-nfc-group">
                     <input type="text" id="rechargeUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
-                        class="input-field-pos">
-                    <button type="button" id="scanNfcRecharge" class="button-pos nfc-button">Escanear NFC</button>
+                        class="input-field">
+                    <button type="button" id="scanNfcRecharge" class="button nfc-button">Escanear NFC</button>
                 </div>
                 <div id="nfcStatusRecharge" class="nfc-status"></div>
 
                 <label for="rechargeAmount">Monto (€):</label>
                 <input type="number" id="rechargeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 20.50"
-                    required class="input-field-pos">
+                    required class="input-field">
 
                 <label for="rechargeMethod">Método de Pago:</label>
-                <select id="rechargeMethod" name="metodoPago" class="input-field-pos">
+                <select id="rechargeMethod" name="metodoPago" class="input-field">
                     <option value="Efectivo">Efectivo</option>
                     <option value="Tarjeta">Tarjeta</option>
                     <option value="Otro">Otro</option>
                 </select>
 
-                <button type="submit" class="button-pos" style="margin-top: 10px;">Recargar</button>
+                <button type="submit" class="button primary">Recargar</button>
             </form>
             <div id="recargaResult" class="section-result"></div>
         </div>
@@ -141,26 +113,24 @@
                 <label for="consumeUid">Código UID Pulsera:</label>
                 <div class="input-nfc-group">
                     <input type="text" id="consumeUid" name="codigoUid" placeholder="Ej: A1B2C3D4 o escanea" required
-                        class="input-field-pos">
-                    <button type="button" id="scanNfcConsume" class="button-pos nfc-button">Escanear NFC</button>
+                        class="input-field">
+                    <button type="button" id="scanNfcConsume" class="button nfc-button">Escanear NFC</button>
                 </div>
                 <div id="nfcStatusConsume" class="nfc-status"></div>
 
                 <label for="consumeAmount">Monto (€):</label>
                 <input type="number" id="consumeAmount" name="monto" step="0.01" min="0.01" placeholder="Ej: 5.00"
-                    required class="input-field-pos">
+                    required class="input-field">
 
                 <label for="consumeDescription">Descripción:</label>
                 <input type="text" id="consumeDescription" name="descripcion" value="Bebida" required
-                    class="input-field-pos">
-
-                <input type="hidden" id="consumeFestivalId" name="idFestival">
+                    class="input-field">
 
                 <label for="consumePosId">ID Punto Venta (Opcional):</label>
                 <input type="number" id="consumePosId" name="idPuntoVenta" placeholder="ID de este POS (si aplica)"
-                    class="input-field-pos">
+                    class="input-field">
 
-                <button type="submit" class="button-pos" style="margin-top: 10px;">Consumir</button>
+                <button type="submit" class="button primary">Consumir</button>
             </form>
             <div id="consumoResult" class="section-result"></div>
         </div>
