@@ -3,7 +3,7 @@
 /* --- Fuentes --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* --- Variables CSS Globales --- */
+/* --- Variables CSS --- */
 :root {
     --color-primary: #4f46e5;
     --color-primary-hover: #4338ca;
@@ -18,22 +18,22 @@
     --color-error-text: #721c24;
     --color-error-border: #f5c6cb;
     --color-info-text: #0056b3;
+    /* Azul para información NFC */
     --color-warning-text: #856404;
+    /* Amarillo/naranja para advertencias NFC */
     --border-radius-md: 0.375rem;
-    /* 6px */
     --border-radius-lg: 0.5rem;
-    /* 8px */
     --text-gray-700: #374151;
     --text-gray-600: #4b5563;
     --text-gray-500: #6b7280;
-    --background-light: #f0f2f5;
+    --background-light: #f4f4f4;
+    /* Fondo general de la página */
     --background-card: #ffffff;
+    /* Fondo de las tarjetas/contenedores */
     --border-color-light: #d1d5db;
+    /* Bordes claros, ej. para inputs */
     --border-color-medium: #9ca3af;
-    --padding-base: 1rem;
-    /* Padding base para móviles */
-    --padding-medium: 1.25rem;
-    --padding-large: 1.5rem;
+    /* Bordes medios */
 }
 
 /* --- Estilos Globales --- */
@@ -43,75 +43,75 @@ body {
     background-color: var(--background-light);
     color: var(--text-gray-700);
     margin: 0;
-    padding: var(--padding-base);
+    padding: 20px;
+    /* Padding general para el body */
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* Centrar contenido principal */
     min-height: 100vh;
-    font-size: 16px;
-    /* Tamaño de fuente base */
 }
 
 /* --- Contenedores y Tarjetas --- */
 .container,
 .card {
+    /* Clase unificada para secciones principales */
     background-color: var(--background-card);
     border-radius: var(--border-radius-lg);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 3px 6px rgba(0, 0, 0, 0.05);
-    padding: var(--padding-medium);
-    margin-bottom: var(--padding-medium);
-    width: 100%;
-    /* Ancho completo en móviles, limitado por max-width */
-    max-width: 600px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    width: 90%;
+    /* Ancho responsivo */
+    max-width: 650px;
+    /* Ancho máximo para legibilidad */
     margin-left: auto;
+    /* Centrar en la página */
     margin-right: auto;
-    box-sizing: border-box;
 }
 
 /* --- Títulos --- */
 h1 {
+    /* Título principal de cada página */
     color: var(--color-primary);
     text-align: center;
-    font-size: 1.75rem;
-    /* Ajustado para móviles */
+    font-size: 1.875rem;
+    /* ~30px */
     font-weight: 700;
-    margin-top: var(--padding-base);
-    margin-bottom: var(--padding-large);
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 h2 {
+    /* Títulos de sección dentro de los .container */
     color: var(--text-gray-700);
     text-align: left;
-    font-size: 1.125rem;
-    /* Ajustado para móviles */
+    font-size: 1.25rem;
+    /* ~20px */
     font-weight: 600;
     margin-top: 0;
-    margin-bottom: var(--padding-base);
+    margin-bottom: 1rem;
     border-bottom: 1px solid var(--border-color-light);
     padding-bottom: 0.5rem;
 }
 
-/* --- Enlaces de Navegación --- */
+/* --- Enlaces de Navegación (index.html y cabeceras de simuladores) --- */
 .nav-links-container {
     text-align: center;
-    margin-bottom: var(--padding-medium);
-    display: flex;
-    flex-wrap: wrap;
-    /* Para que los enlaces se ajusten en pantallas pequeñas */
-    justify-content: center;
-    gap: 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .nav-link {
     display: inline-block;
-    padding: 0.625rem 1rem;
+    margin: 0.5rem;
+    padding: 0.75rem 1.5rem;
     background-color: var(--color-primary);
     color: white;
+    text-align: center;
     border-radius: var(--border-radius-md);
     font-weight: 500;
     text-decoration: none;
     transition: background-color 0.2s ease-in-out;
-    font-size: 0.875rem;
 }
 
 .nav-link:hover {
@@ -119,9 +119,9 @@ h2 {
 }
 
 .nav-links-container span.separator {
+    /* Separador "|" entre enlaces */
     color: var(--text-gray-500);
-    align-self: center;
-    /* Alinear verticalmente con los botones/enlaces */
+    margin: 0 0.5rem;
 }
 
 /* --- Formularios --- */
@@ -130,48 +130,57 @@ label {
     margin-bottom: 0.375rem;
     font-weight: 500;
     font-size: 0.875rem;
+    /* ~14px */
     color: var(--text-gray-700);
 }
 
 .input-field,
 select.input-field {
+    /* Estilo unificado para inputs y selects */
     border: 1px solid var(--border-color-light);
     border-radius: var(--border-radius-md);
-    padding: 0.75rem;
-    /* Padding para facilidad de toque */
+    padding: 0.625rem 0.75rem;
+    /* ~10px 12px */
     width: 100%;
     box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    /* Sombra interna sutil */
     box-sizing: border-box;
-    margin-bottom: var(--padding-base);
+    /* Asegura que padding y border no aumenten el ancho total */
+    margin-bottom: 1rem;
+    /* Espacio inferior */
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    font-size: 1rem;
-    /* Tamaño de fuente legible */
 }
 
 .input-field:focus,
 select.input-field:focus {
-    outline: 0;
+    outline: 2px solid transparent;
     /* Quitar outline por defecto */
+    outline-offset: 2px;
     border-color: var(--color-primary);
+    /* Borde de foco */
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
-    /* Anillo de foco */
+    /* Anillo de foco similar a Tailwind */
 }
 
 /* --- Botones --- */
 .button {
+    /* Clase base para todos los botones */
     color: white;
-    padding: 0.75rem 1.25rem;
-    /* Padding para facilidad de toque */
+    padding: 0.625rem 1.25rem;
+    /* ~10px 20px */
     border-radius: var(--border-radius-md);
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
     display: block;
     width: 100%;
+    /* Ocupan todo el ancho disponible por defecto */
     box-sizing: border-box;
     border: none;
     font-size: 1rem;
-    margin-top: 0.75rem;
+    /* ~16px */
+    margin-top: 0.5rem;
+    /* Espacio superior por defecto */
     text-align: center;
 }
 
@@ -192,18 +201,11 @@ select.input-field:focus {
 }
 
 .button.logout {
+    /* Botón específico de logout */
     background-color: var(--color-danger);
 }
 
 .button.logout:hover {
-    background-color: var(--color-danger-hover);
-}
-
-.button.danger {
-    background-color: var(--color-danger);
-}
-
-.button.danger:hover {
     background-color: var(--color-danger-hover);
 }
 
@@ -213,120 +215,77 @@ select.input-field:focus {
     cursor: not-allowed;
 }
 
-/* Botones de Escaneo (NFC y QR) */
-.nfc-button,
-.scan-button {
-    padding: 0.625rem 0.875rem;
+/* Botones NFC (más pequeños, para ir al lado de inputs) */
+.nfc-button {
+    padding: 0.5rem 0.75rem;
+    /* ~8px 12px */
     font-size: 0.875rem;
+    /* ~14px */
     width: auto;
-    /* No ocupan todo el ancho */
+    /* No ocupa todo el ancho */
     flex-shrink: 0;
-    /* No se encogen si el espacio es limitado */
+    /* Evita que se encoja en flex container */
     margin-top: 0;
-    /* Sin margen superior si están en un grupo */
+    /* Quitar margen superior si está en un grupo */
     background-color: var(--color-secondary);
+    /* Color secundario para botones NFC */
 }
 
-.nfc-button:hover,
-.scan-button:hover {
+.nfc-button:hover {
     background-color: var(--color-secondary-hover);
 }
 
-/* Grupo de Input con Botón (NFC o QR) */
-.input-nfc-group,
-.input-scan-group {
+/* Grupo de Input con Botón NFC */
+.input-nfc-group {
     display: flex;
-    align-items: stretch;
-    /* Botón y input con la misma altura */
+    align-items: center;
+    /* Alinear verticalmente input y botón */
     gap: 0.5rem;
+    /* Espacio entre input y botón */
     margin-bottom: 0.5rem;
+    /* Margen inferior del grupo */
 }
 
-.input-nfc-group .input-field,
-.input-scan-group .input-field {
+.input-nfc-group .input-field {
     flex-grow: 1;
-    /* Input ocupa el espacio restante */
+    /* El input ocupa el espacio restante */
     margin-bottom: 0;
+    /* Quitar margen inferior del input si está dentro del grupo */
 }
 
-.input-nfc-group .button,
-.input-scan-group .button {
-    height: auto;
-    /* Altura se ajusta al padding */
-    align-self: stretch;
-    /* Ocupa toda la altura del item flex */
-}
-
-/* Estado de Escaneo (NFC o QR) */
-.nfc-status,
-.scan-status {
+/* Estado de NFC (mensajes debajo del input NFC) */
+.nfc-status {
     font-size: 0.875rem;
+    /* ~14px */
     margin-top: -0.375rem;
-    /* Acercar al grupo de input */
+    /* Ajuste para acercarlo al input-group */
     margin-bottom: 0.75rem;
+    /* Espacio antes del siguiente elemento */
     min-height: 1.2em;
-    /* Evitar saltos de layout */
+    /* Evitar saltos de layout si el texto cambia */
     padding-left: 0.125rem;
+    /* Pequeña indentación */
 }
 
-.nfc-status.info,
-.scan-status.info {
+.nfc-status.info {
     color: var(--color-info-text);
 }
 
-.nfc-status.success,
-.scan-status.success {
+.nfc-status.success {
     color: var(--color-success-text);
 }
 
-.nfc-status.warning,
-.scan-status.warning {
+.nfc-status.warning {
     color: var(--color-warning-text);
 }
 
-.nfc-status.error,
-.scan-status.error {
+.nfc-status.error {
     color: var(--color-error-text);
 }
 
-/* Contenedor del Escáner QR */
-.qr-scanner-container {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-    border: 1px solid var(--border-color-medium);
-    padding: 0.5rem;
-    position: relative;
-    /* Para posicionar botón de detener */
-    background-color: #000;
-    /* Fondo oscuro para el vídeo */
-    border-radius: var(--border-radius-md);
-}
-
-.qr-video {
-    width: 100%;
-    max-height: 240px;
-    /* Altura máxima del vídeo en móviles */
-    border-radius: var(--border-radius-md);
-    display: block;
-    /* Evitar espacio extra debajo */
-}
-
-.stop-scan-button {
-    /* Botón para detener escáner QR */
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: auto;
-    padding: 0.375rem 0.625rem;
-    font-size: 0.8rem;
-    /* Botón pequeño */
-    z-index: 10;
-    /* Sobre el vídeo */
-}
-
 /* --- Mensajes y Resultados --- */
+/* Estado del Login (POS) */
 #loginStatus {
-    /* Estado del login en POS */
     font-weight: 600;
     padding: 0.375rem 0.75rem;
     border-radius: var(--border-radius-md);
@@ -348,16 +307,19 @@ select.input-field:focus {
 /* Resultados de sección (POS) y Mensajes generales (Festival) */
 .section-result,
 .message-box {
+    /* Clase unificada para mensajes de resultado/estado */
     margin-top: 1rem;
     padding: 0.75rem;
     border-radius: var(--border-radius-md);
     font-size: 0.9rem;
     min-height: 1.5em;
+    /* Para evitar saltos de layout */
     border-width: 1px;
     border-style: solid;
     word-wrap: break-word;
+    /* Para que el texto largo no desborde */
     display: none;
-    /* Ocultos por defecto, se muestran con JS añadiendo .visible */
+    /* Ocultos por defecto, se muestran con JS añadiendo clase 'visible' */
 }
 
 .section-result.visible,
@@ -379,36 +341,35 @@ select.input-field:focus {
     border-color: var(--color-error-border);
 }
 
+/* Área de Resultado General (API Response en POS) */
 #resultArea {
-    /* Área para respuestas completas de API en POS */
     margin-top: 1.25rem;
     padding: 1rem;
     border: 1px solid var(--border-color-light);
     background-color: #f9fafb;
+    /* Gris muy claro */
     border-radius: var(--border-radius-md);
     white-space: pre-wrap;
-    /* Conservar formato del JSON */
+    /* Conservar espacios y saltos de línea del JSON */
     word-wrap: break-word;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     /* Fuente monoespaciada */
     min-height: 60px;
-    font-size: 0.8125rem;
-    /* Ligeramente más pequeño en móviles */
+    font-size: 0.875rem;
     line-height: 1.5;
 }
 
 #resultArea.success {
+    /* Borde para indicar éxito en la respuesta general */
     border-color: var(--color-success-border);
 }
 
-/* Borde de éxito */
 #resultArea.error {
+    /* Borde para indicar error en la respuesta general */
     border-color: var(--color-error-border);
 }
 
-/* Borde de error */
-
-/* --- Específicos de festival.html (para consistencia si se usa este CSS) --- */
+/* --- Estilos Específicos de festival.html --- */
 #card-element {
     /* Contenedor del elemento de tarjeta de Stripe */
     border: 1px solid var(--border-color-light);
@@ -425,15 +386,25 @@ select.input-field:focus {
     margin-top: 0.5rem;
 }
 
-.qr-image-display {
-    /* Imagen QR de la entrada en festival.html */
-    border: 1px solid #e5e7eb;
-    display: block;
-    margin-top: 0.5rem;
-    background-color: white;
+.ticket-card {
+    /* Tarjeta para mostrar entradas compradas en festival.html */
+    /* Hereda estilos de .card, pero puede tener ajustes específicos si es necesario */
+    /* Por ejemplo, si se usa Tailwind en festival.html, los estilos de .card aquí pueden no aplicar directamente */
+    /* Asegurarse que el HTML en festival.html use la clase .card o .ticket-card con estilos consistentes */
 }
 
-/* Utilitarios de texto */
+.qr-image-display {
+    /* Imagen QR de la entrada */
+    border: 1px solid #e5e7eb;
+    /* Un borde sutil */
+    display: block;
+    /* Para que ocupe su propio espacio */
+    margin-top: 0.5rem;
+    background-color: white;
+    /* Fondo blanco para el QR */
+}
+
+/* Clases de utilidad para texto pequeño informativo */
 .text-sm-info {
     font-size: 0.875rem;
     color: var(--text-gray-600);
@@ -445,19 +416,23 @@ select.input-field:focus {
     margin-top: 0.25rem;
 }
 
-/* --- Spinner para Botones (animación) --- */
+/* --- Animación Spinner para Botones --- */
 .button .spinner {
     display: none;
+    /* Oculto por defecto */
     width: 1em;
-    height: 1em;
     /* Tamaño relativo al texto del botón */
+    height: 1em;
     border: 2px solid rgba(255, 255, 255, 0.3);
+    /* Borde semitransparente */
     border-radius: 50%;
     border-top-color: #fff;
-    /* Segmento visible del spinner */
+    /* Color del segmento giratorio */
     animation: spin 0.8s ease-in-out infinite;
     margin-left: 0.5rem;
+    /* Espacio si hay texto al lado */
     vertical-align: middle;
+    /* Alinear con el texto */
 }
 
 @keyframes spin {
@@ -467,55 +442,11 @@ select.input-field:focus {
 }
 
 .button.loading .spinner {
+    /* Mostrar spinner cuando el botón tiene clase 'loading' */
     display: inline-block;
 }
 
-/* Mostrar spinner */
 .button.loading .button-text {
+    /* Ocultar texto cuando el botón está cargando */
     display: none;
-}
-
-/* Ocultar texto del botón al cargar */
-
-/* --- Media Queries para ajustes finos en pantallas pequeñas --- */
-@media (max-width: 400px) {
-    body {
-        padding: 0.75rem;
-        /* Menos padding en pantallas muy estrechas */
-    }
-
-    .container,
-    .card {
-        padding: var(--padding-base);
-        margin-bottom: var(--padding-base);
-    }
-
-    h1 {
-        font-size: 1.5rem;
-        /* Título principal más pequeño */
-        margin-bottom: var(--padding-medium);
-    }
-
-    h2 {
-        font-size: 1rem;
-        /* Títulos de sección más pequeños */
-    }
-
-    .input-field,
-    select.input-field,
-    .button {
-        font-size: 0.9375rem;
-        /* Asegurar buena legibilidad y facilidad de toque */
-    }
-
-    .nav-link {
-        /* Enlaces de navegación más compactos */
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8125rem;
-    }
-
-    #resultArea {
-        font-size: 0.75rem;
-        /* Texto de resultado API más pequeño */
-    }
 }

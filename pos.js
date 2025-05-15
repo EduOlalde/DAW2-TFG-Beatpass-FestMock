@@ -1,8 +1,6 @@
-// const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
-const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Para desarrollo local
+const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
+//const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Para desarrollo local
 let tokenJwt = null;
-let currentQrStream = null; // Stream de la cámara para el escáner QR
-let qrAnimationId = null; // ID para requestAnimationFrame del escáner QR
 
 // --- Selectores del DOM ---
 const formularioLogin = document.getElementById('loginForm');
@@ -19,18 +17,20 @@ const divResultadoConsulta = document.getElementById('consultaResult');
 const divResultadoRecarga = document.getElementById('recargaResult');
 const divResultadoConsumo = document.getElementById('consumoResult');
 
-// NFC
-const btnScanNfcCheck = document.getElementById('scanNfcCheck');
+// Selectores para NFC
+const btnScanCheck = document.getElementById('scanNfcCheck');
 const inputCheckUid = document.getElementById('checkUid');
 const statusCheckNfc = document.getElementById('nfcStatusCheck');
+
 const btnScanRecharge = document.getElementById('scanNfcRecharge');
 const inputRechargeUid = document.getElementById('rechargeUid');
 const statusRechargeNfc = document.getElementById('nfcStatusRecharge');
+
 const btnScanConsume = document.getElementById('scanNfcConsume');
 const inputConsumeUid = document.getElementById('consumeUid');
 const statusConsumeNfc = document.getElementById('nfcStatusConsume');
 
-// Asociar Pulsera
+// Selectores para Asociar Pulsera
 const formularioAsociarPulsera = document.getElementById('asociarPulseraForm');
 const inputAsociarQrEntrada = document.getElementById('asociarQrEntrada');
 const inputAsociarUidPulsera = document.getElementById('asociarUidPulsera');
@@ -38,24 +38,20 @@ const btnScanNfcAsociar = document.getElementById('scanNfcAsociar');
 const statusNfcAsociar = document.getElementById('nfcStatusAsociar');
 const divResultadoAsociar = document.getElementById('asociarResult');
 
-// Escáner QR Entrada (Asociar Pulsera)
-const btnScanQrEntrada = document.getElementById('scanQrEntradaButton');
-const qrScannerEntradaContainer = document.getElementById('qrScannerEntradaContainer');
-const videoQrEntrada = document.getElementById('qrVideoEntrada');
-const btnStopScanQrEntrada = document.getElementById('stopScanQrEntradaButton');
-const statusQrEntradaScan = document.getElementById('statusQrEntradaScan');
 
-// --- Gestión del Token ---
+// --- Funciones de Gestión del Token ---
 function almacenarToken(token) {
     tokenJwt = token;
     localStorage.setItem('tokenJwt', token);
     actualizarEstadoLogin(true);
+    console.log("Token JWT almacenado.");
 }
 
 function limpiarToken() {
     tokenJwt = null;
     localStorage.removeItem('tokenJwt');
     actualizarEstadoLogin(false);
+    console.log("Token JWT eliminado.");
 }
 
 function cargarToken() {
@@ -63,16 +59,17 @@ function cargarToken() {
     if (tokenAlmacenado) {
         tokenJwt = tokenAlmacenado;
         actualizarEstadoLogin(true);
+        console.log("Token JWT cargado desde localStorage.");
     } else {
         actualizarEstadoLogin(false);
     }
 }
 
-// --- UI ---
+// --- Funciones de UI ---
 function actualizarEstadoLogin(sesionIniciada) {
     if (sesionIniciada) {
         estadoLogin.textContent = 'Autenticado';
-        estadoLogin.className = 'success';
+        estadoLogin.className = 'success'; // La clase CSS se encarga del estilo
         divOperacionesTPV.style.display = 'block';
         botonCerrarSesion.style.display = 'inline-block';
         if (formularioLogin) formularioLogin.style.display = 'none';
@@ -84,84 +81,87 @@ function actualizarEstadoLogin(sesionIniciada) {
         if (formularioLogin) formularioLogin.style.display = 'block';
         limpiarResultadosEspecificos();
         limpiarEstadosNFC();
-        limpiarEstadosScanQR();
         areaResultadoGeneral.innerHTML = 'Esperando acciones...';
-        areaResultadoGeneral.className = '';
+        areaResultadoGeneral.className = ''; // Sin clase de error/éxito inicial
     }
 }
 
+/** Muestra un resultado general en el área designada. */
 function mostrarResultadoGeneral(datos, esError = false) {
     areaResultadoGeneral.innerHTML = '';
     const contenido = document.createElement('pre');
+    // Estilos para 'pre' están en CSS, no es necesario aquí.
     contenido.textContent = typeof datos === 'object' ? JSON.stringify(datos, null, 2) : String(datos);
     areaResultadoGeneral.appendChild(contenido);
     areaResultadoGeneral.className = esError ? 'error' : 'success';
-    // Log en consola para depuración
-    if (esError) console.error("API Response (Error):", datos); else console.log("API Response (Success):", datos);
+    if (esError) console.error("Error API (General):", datos); else console.log("Éxito API (General):", datos);
 }
 
+/** Muestra un resultado en un div específico para una operación. */
 function mostrarResultadoEspecifico(divDestino, mensaje, esError) {
     if (divDestino) {
         divDestino.textContent = String(mensaje);
-        divDestino.className = `section-result visible ${esError ? 'error' : 'success'}`;
+        divDestino.className = `section-result visible ${esError ? 'error' : 'success'}`; // Añadir 'visible'
     }
 }
 
+/** Muestra un mensaje de estado en un div específico para NFC. */
 function mostrarEstadoNFC(divDestino, mensaje, tipo = 'info') {
     if (divDestino) {
         divDestino.textContent = String(mensaje);
-        divDestino.className = `nfc-status ${tipo}`;
-    }
-}
-
-function mostrarEstadoScanQR(divDestino, mensaje, tipo = 'info') {
-    if (divDestino) {
-        divDestino.textContent = String(mensaje);
-        divDestino.className = `scan-status ${tipo}`;
+        divDestino.className = `nfc-status ${tipo}`; // La clase CSS se encarga del color
     }
 }
 
 function limpiarResultadosEspecificos() {
-    [divResultadoConsulta, divResultadoRecarga, divResultadoConsumo, divResultadoAsociar].forEach(div => {
+    const resultados = [divResultadoConsulta, divResultadoRecarga, divResultadoConsumo, divResultadoAsociar];
+    resultados.forEach(div => {
         if (div) {
             div.textContent = '';
-            div.className = 'section-result';
+            div.className = 'section-result'; // Quitar 'visible', 'error', 'success'
         }
     });
 }
 
 function limpiarEstadosNFC() {
-    [statusCheckNfc, statusRechargeNfc, statusConsumeNfc, statusNfcAsociar].forEach(div => {
+    const estados = [statusCheckNfc, statusRechargeNfc, statusConsumeNfc, statusNfcAsociar];
+    estados.forEach(div => {
         if (div) {
             div.textContent = '';
-            div.className = 'nfc-status';
+            div.className = 'nfc-status'; // Resetear a clase base
         }
     });
 }
 
-function limpiarEstadosScanQR() {
-    if (statusQrEntradaScan) {
-        statusQrEntradaScan.textContent = '';
-        statusQrEntradaScan.className = 'scan-status';
-    }
-    if (qrScannerEntradaContainer) qrScannerEntradaContainer.style.display = 'none';
-}
-
-// --- API ---
+/**
+ * Realiza una llamada fetch a la API, añadiendo el token JWT si está disponible.
+ * Maneja la respuesta y posibles errores.
+ * @param {string} url - La URL completa del endpoint de la API.
+ * @param {object} [opciones={}] - Opciones para la función fetch (method, body, etc.).
+ * @returns {Promise<any>} - Promesa que resuelve con los datos de la respuesta o rechaza con error.
+ */
 async function peticionApiConAutenticacion(url, opciones = {}) {
     const cabeceras = { ...(opciones.headers || {}) };
     if (tokenJwt) {
         cabeceras['Authorization'] = `Bearer ${tokenJwt}`;
     }
+    // Determinar Content-Type si no está explícitamente en las opciones
     if (opciones.body) {
         if (opciones.body instanceof URLSearchParams) {
             if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
         } else if (typeof opciones.body === 'object' && !(opciones.body instanceof FormData)) {
+            // Asumir JSON si es un objeto y no FormData
             if (!cabeceras['Content-Type']) cabeceras['Content-Type'] = 'application/json';
+            // Convertir a string JSON si aún no lo es
             if (typeof opciones.body !== 'string') opciones.body = JSON.stringify(opciones.body);
         }
+        // FormData se maneja automáticamente por fetch, no necesita Content-Type explícito aquí.
     }
+
     const opcionesFetch = { ...opciones, headers: cabeceras };
+    console.log(`Petición: ${url}`, opcionesFetch);
+
+    // Mostrar intento de petición en el área general
     const payloadParaMostrar = opciones.body instanceof URLSearchParams ? opciones.body.toString() : (typeof opciones.body === 'string' ? opciones.body : JSON.stringify(opciones.body, null, 2));
     mostrarResultadoGeneral(`Enviando petición a: ${url.replace(URL_BASE_API, "")}\nPayload: ${payloadParaMostrar || '(sin payload)'}`, false);
 
@@ -171,221 +171,313 @@ async function peticionApiConAutenticacion(url, opciones = {}) {
         const tipoContenido = respuesta.headers.get('content-type');
 
         if (tipoContenido && tipoContenido.includes('application/json')) {
-            try { datosRespuesta = await respuesta.json(); }
-            catch (e) { datosRespuesta = await respuesta.text(); } // Fallback a texto
-        } else {
-            datosRespuesta = await respuesta.text();
+            try {
+                datosRespuesta = await respuesta.json();
+            } catch (errorJson) {
+                console.warn("Fallo al parsear JSON, intentando obtener texto.", errorJson);
+                try { datosRespuesta = await respuesta.text(); } // Fallback a texto
+                catch (errorTexto) { console.error("Fallo crítico al obtener texto de respuesta.", errorTexto); datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`; }
+            }
+        } else { // Si no es JSON, intentar obtener como texto
+            try {
+                datosRespuesta = await respuesta.text();
+            } catch (errorTexto) {
+                console.error("Fallo al obtener texto no JSON.", errorTexto);
+                datosRespuesta = `Error ${respuesta.status}: Respuesta no procesable.`;
+            }
         }
 
         if (!respuesta.ok) {
-            const mensajeError = (datosRespuesta && typeof datosRespuesta === 'object' && datosRespuesta.error) ? datosRespuesta.error : (datosRespuesta || `Error ${respuesta.status}`);
+            console.error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`, datosRespuesta);
+            // Intentar extraer un mensaje de error más específico del cuerpo de la respuesta
+            const mensajeError = (datosRespuesta && typeof datosRespuesta === 'object' && datosRespuesta.error)
+                ? datosRespuesta.error
+                : (datosRespuesta && typeof datosRespuesta === 'string' && datosRespuesta.length < 200 && datosRespuesta.length > 0 ? datosRespuesta : `Error ${respuesta.status}: ${respuesta.statusText}`);
             mostrarResultadoGeneral(datosRespuesta, true);
             throw new Error(mensajeError);
         }
+
         mostrarResultadoGeneral(datosRespuesta, false);
+        console.log("Petición API exitosa", datosRespuesta);
         return datosRespuesta;
+
     } catch (error) {
-        // El error ya se muestra en mostrarResultadoGeneral dentro del bloque !respuesta.ok
-        // o si es un error de red.
-        console.error('Error en peticionApiConAutenticacion:', error.message);
-        throw error;
+        console.error('Error en peticionApiConAutenticacion:', error);
+        // El error ya se debería haber mostrado en el área general
+        throw error; // Re-lanzar para que el manejador específico lo capture
     }
 }
 
-// --- NFC ---
+/**
+ * Intenta leer una etiqueta NFC usando la Web NFC API.
+ * @param {HTMLInputElement} inputElement - El campo de texto donde se escribirá el UID.
+ * @param {HTMLElement} statusElement - El elemento para mostrar mensajes de estado NFC.
+ */
 async function leerEtiquetaNFC(inputElement, statusElement) {
     if (!('NDEFReader' in window)) {
-        mostrarEstadoNFC(statusElement, "Web NFC no es compatible.", 'error');
+        mostrarEstadoNFC(statusElement, "Web NFC no es compatible con este navegador/dispositivo.", 'error');
+        console.warn("Web NFC API no disponible.");
         return;
     }
-    mostrarEstadoNFC(statusElement, "Acerca etiqueta NFC...", 'info');
+
+    mostrarEstadoNFC(statusElement, "Acerca una etiqueta NFC al lector del móvil...", 'info');
+
     try {
         const ndef = new NDEFReader();
-        await ndef.scan();
-        mostrarEstadoNFC(statusElement, "Escaneo NFC activo.", 'info');
-        ndef.addEventListener("readingerror", () => mostrarEstadoNFC(statusElement, "Error al leer NFC.", 'error'));
-        ndef.addEventListener("reading", ({ serialNumber }) => {
-            if (inputElement) inputElement.value = serialNumber || "N/A";
-            mostrarEstadoNFC(statusElement, `NFC Leído: ${serialNumber}`, 'success');
-            // Considerar ndef.abort() si solo se necesita una lectura.
+        await ndef.scan(); // Inicia el escaneo
+        console.log("NFC: Escaneo iniciado");
+        mostrarEstadoNFC(statusElement, "Escaneo NFC activo. Esperando etiqueta...", 'info');
+
+        ndef.addEventListener("readingerror", (event) => {
+            const errorMessage = "NFC: No se pudo leer la etiqueta.";
+            mostrarEstadoNFC(statusElement, errorMessage, 'error');
+            console.error(errorMessage, event);
         });
-    } catch (error) {
-        let msg = `Error NFC: ${error.message}`;
-        if (error.name === 'NotAllowedError') msg = "NFC: Permiso denegado.";
-        else if (error.name === 'NotSupportedError') msg = "NFC: No soportado/activado.";
-        mostrarEstadoNFC(statusElement, msg, 'error');
-    }
-}
 
-// --- Escáner QR ---
-async function iniciarEscaneoQR(videoElement, inputElement, statusElement, scannerContainer) {
-    if (!navigator.mediaDevices?.getUserMedia) {
-        mostrarEstadoScanQR(statusElement, "Cámara no soportada.", 'error');
-        return;
-    }
-    if (!window.jsQR) {
-        mostrarEstadoScanQR(statusElement, "Librería jsQR no cargada.", 'error');
-        return;
-    }
-    detenerEscaneoQR(); // Detener stream previo
-    try {
-        currentQrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        videoElement.srcObject = currentQrStream;
-        videoElement.play();
-        scannerContainer.style.display = 'block';
-        mostrarEstadoScanQR(statusElement, "Escaneando QR...", 'info');
+        ndef.addEventListener("reading", ({ serialNumber }) => {
+            console.log(`NFC: Número de serie leído: ${serialNumber}`);
+            const uidNFC = serialNumber || "N/A"; // Usar el serialNumber como UID
 
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-
-        function tick() {
-            if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-                canvas.height = videoElement.videoHeight;
-                canvas.width = videoElement.videoWidth;
-                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) {
-                    inputElement.value = code.data;
-                    mostrarEstadoScanQR(statusElement, `QR Detectado`, 'success'); // Mensaje más corto
-                    detenerEscaneoQR();
-                    scannerContainer.style.display = 'none';
-                }
+            if (inputElement) {
+                inputElement.value = uidNFC;
+                mostrarEstadoNFC(statusElement, `NFC: Etiqueta leída (UID: ${uidNFC})`, 'success');
+            } else {
+                // Esto no debería pasar si se llama correctamente
+                mostrarEstadoNFC(statusElement, `NFC: Etiqueta leída (UID: ${uidNFC}), pero no se encontró el campo de destino.`, 'warning');
             }
-            if (currentQrStream) qrAnimationId = requestAnimationFrame(tick);
-        }
-        qrAnimationId = requestAnimationFrame(tick);
-    } catch (err) {
-        let msg = "Error cámara.";
-        if (err.name === "NotAllowedError") msg = "Permiso cámara denegado.";
-        else if (err.name === "NotFoundError") msg = "Cámara no encontrada.";
-        mostrarEstadoScanQR(statusElement, msg, 'error');
-        detenerEscaneoQR();
-        scannerContainer.style.display = 'none';
-    }
-}
+            // Considerar si detener el escaneo aquí o permitir lecturas continuas.
+            // Para un solo campo, abortar es usualmente lo deseado.
+            // ndef.abort(); // Opcional: detener escaneo tras lectura exitosa
+            // console.log("NFC: Escaneo detenido después de la lectura.");
+        });
 
-function detenerEscaneoQR() {
-    if (qrAnimationId) cancelAnimationFrame(qrAnimationId);
-    qrAnimationId = null;
-    if (currentQrStream) {
-        currentQrStream.getTracks().forEach(track => track.stop());
-        currentQrStream = null;
+    } catch (error) {
+        let errorMessage = `Error NFC: ${error.message}`;
+        if (error.name === 'NotAllowedError') { // Permiso denegado por el usuario
+            errorMessage = "Error NFC: Permiso denegado para acceder a NFC.";
+        } else if (error.name === 'NotSupportedError') { // Hardware no soportado o desactivado
+            errorMessage = "Error NFC: El hardware NFC no está disponible o activado.";
+        }
+        mostrarEstadoNFC(statusElement, errorMessage, 'error');
+        console.error("Error al iniciar escaneo NFC:", error);
     }
-    if (videoQrEntrada) videoQrEntrada.srcObject = null;
-    // No ocultar scannerContainer aquí, se maneja donde se llama
 }
 
 // --- Manejadores de Eventos ---
+
 async function manejarLogin(evento) {
     evento.preventDefault();
-    const credenciales = { email: formularioLogin.email.value, password: formularioLogin.password.value };
-    limpiarResultadosEspecificos(); limpiarEstadosNFC(); limpiarEstadosScanQR();
+    const datosFormulario = new FormData(formularioLogin);
+    const credenciales = { email: datosFormulario.get('email'), password: datosFormulario.get('password') };
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
     try {
         const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/auth/login`, { method: 'POST', body: credenciales });
-        if (datos?.token) almacenarToken(datos.token);
-        else { mostrarResultadoGeneral("Error: Login fallido.", true); limpiarToken(); }
-    } catch (e) { limpiarToken(); }
+        if (datos && datos.token) {
+            almacenarToken(datos.token);
+        } else {
+            console.error("Respuesta de login inesperada (sin token):", datos);
+            mostrarResultadoGeneral("Error: Respuesta de login inesperada del servidor.", true);
+            limpiarToken();
+        }
+    } catch (error) {
+        limpiarToken(); // Asegurar que no quede un token inválido
+    }
 }
 
 function manejarCierreSesion() {
     limpiarToken();
-    detenerEscaneoQR();
     mostrarResultadoGeneral("Sesión cerrada.");
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
 }
 
 async function manejarConsultarSaldo(evento) {
     evento.preventDefault();
     const uid = inputCheckUid.value;
-    limpiarResultadosEspecificos(); limpiarEstadosNFC();
-    if (!uid) { mostrarResultadoEspecifico(divResultadoConsulta, "UID de pulsera requerido.", true); return; }
-    mostrarResultadoEspecifico(divResultadoConsulta, `Consultando UID: ${uid}...`, false);
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
+
+    if (!uid) {
+        mostrarResultadoEspecifico(divResultadoConsulta, "Por favor, introduce o escanea un UID de pulsera.", true);
+        return;
+    }
+    mostrarResultadoEspecifico(divResultadoConsulta, `Consultando pulsera UID: ${uid}...`, false);
+
     try {
         const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/pos/pulseras/${uid}`, { method: 'GET' });
-        if (datos?.saldo !== undefined) {
+        if (datos && datos.saldo !== undefined && datos.activa !== undefined) {
             const estado = datos.activa ? 'Activa' : 'Inactiva';
-            const saldoF = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
-            mostrarResultadoEspecifico(divResultadoConsulta, `Saldo: ${saldoF} | Estado: ${estado} ${datos.idFestival ? `(Fest ID: ${datos.idFestival})` : ''} ${datos.nombreAsistente ? `- Asist: ${datos.nombreAsistente}` : ''}`, false);
-        } else mostrarResultadoEspecifico(divResultadoConsulta, "Respuesta inesperada.", true);
-    } catch (e) { mostrarResultadoEspecifico(divResultadoConsulta, `Error: ${e.message}`, true); }
+            const saldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            const infoFestival = datos.idFestival ? ` (Festival ID: ${datos.idFestival})` : '';
+            const infoAsistente = datos.nombreAsistente ? ` - Asistente: ${datos.nombreAsistente}` : '';
+            mostrarResultadoEspecifico(divResultadoConsulta, `Saldo: ${saldoFormateado} | Estado: ${estado}${infoFestival}${infoAsistente}`, false);
+        } else {
+            mostrarResultadoEspecifico(divResultadoConsulta, "Respuesta recibida, pero faltan datos de saldo o estado.", true);
+        }
+    } catch (error) {
+        mostrarResultadoEspecifico(divResultadoConsulta, `Error al consultar: ${error.message}`, true);
+    }
 }
 
 async function manejarAsociarPulseraAEntrada(evento) {
     evento.preventDefault();
-    detenerEscaneoQR();
     const codigoQr = inputAsociarQrEntrada.value;
     const uidPulsera = inputAsociarUidPulsera.value;
     const idFestival = entradaIdFestivalTPV.value;
 
-    limpiarResultadosEspecificos(); limpiarEstadosNFC();
-    if (!codigoQr || !uidPulsera || !idFestival) {
-        mostrarResultadoEspecifico(divResultadoAsociar, "QR, UID Pulsera e ID Festival son obligatorios.", true); return;
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
+
+    if (!codigoQr) {
+        mostrarResultadoEspecifico(divResultadoAsociar, "Por favor, introduce el Código QR de la entrada.", true);
+        return;
     }
-    mostrarResultadoEspecifico(divResultadoAsociar, `Asociando UID: ${uidPulsera} a QR: ${codigoQr.substring(0, 10)}...`, false);
-    const cuerpo = new URLSearchParams({ codigoQrEntrada: codigoQr, codigoUidPulsera: uidPulsera, idFestival: idFestival });
+    if (!uidPulsera) {
+        mostrarResultadoEspecifico(divResultadoAsociar, "Por favor, introduce o escanea el UID de la pulsera.", true);
+        return;
+    }
+    if (!idFestival) {
+        mostrarResultadoEspecifico(divResultadoAsociar, "Error: No se ha definido el ID del Festival para el TPV.", true);
+        return;
+    }
+
+    mostrarResultadoEspecifico(divResultadoAsociar, `Asociando pulsera UID: ${uidPulsera} a entrada QR: ${codigoQr.substring(0, 15)}... (Fest ID: ${idFestival})...`, false);
+
+    const cuerpoPeticion = new URLSearchParams();
+    cuerpoPeticion.append('codigoQrEntrada', codigoQr);
+    cuerpoPeticion.append('codigoUidPulsera', uidPulsera);
+    cuerpoPeticion.append('idFestival', idFestival);
+
     try {
-        const datos = await peticionApiConAutenticacion(`${URL_BASE_API}/pos/pulseras/asociar-entrada-qr`, { method: 'POST', body: cuerpo });
-        if (datos?.pulsera?.codigoUid) {
-            mostrarResultadoEspecifico(divResultadoAsociar, datos.mensaje || `Pulsera ${datos.pulsera.codigoUid} asociada.`, false);
-            inputAsociarQrEntrada.value = ''; inputAsociarUidPulsera.value = '';
-            if (statusQrEntradaScan) { statusQrEntradaScan.textContent = ''; statusQrEntradaScan.className = 'scan-status'; }
-        } else mostrarResultadoEspecifico(divResultadoAsociar, datos.mensaje || "Error al asociar.", true);
-    } catch (e) { mostrarResultadoEspecifico(divResultadoAsociar, `Error: ${e.message}`, true); }
+        // Endpoint actualizado según el backend: /pos/pulseras/asociar-entrada-qr
+        const url = `${URL_BASE_API}/pos/pulseras/asociar-entrada-qr`;
+        const datosRespuesta = await peticionApiConAutenticacion(url, {
+            method: 'POST',
+            body: cuerpoPeticion
+        });
+
+        if (datosRespuesta && datosRespuesta.pulsera && datosRespuesta.pulsera.codigoUid) {
+            mostrarResultadoEspecifico(divResultadoAsociar, datosRespuesta.mensaje || `Pulsera ${datosRespuesta.pulsera.codigoUid} asociada correctamente.`, false);
+            inputAsociarQrEntrada.value = '';
+            inputAsociarUidPulsera.value = '';
+        } else {
+            // Si la respuesta no tiene la estructura esperada pero fue un 2xx, podría ser un mensaje simple.
+            // Si 'datosRespuesta.mensaje' existe, se usa. Si no, mensaje genérico.
+            const mensajeServidor = datosRespuesta && datosRespuesta.mensaje ? datosRespuesta.mensaje : "Respuesta inesperada del servidor al asociar.";
+            mostrarResultadoEspecifico(divResultadoAsociar, mensajeServidor, !(datosRespuesta && datosRespuesta.pulsera)); // esError si no hay 'pulsera'
+        }
+    } catch (error) {
+        mostrarResultadoEspecifico(divResultadoAsociar, `Error al asociar pulsera: ${error.message}`, true);
+    }
 }
 
 async function manejarRecarga(evento) {
     evento.preventDefault();
-    const uid = formularioRecarga.codigoUid.value; // Acceso directo al valor del input
-    const monto = formularioRecarga.monto.value;
-    const metodoPago = formularioRecarga.metodoPago.value;
+    const datosFormulario = new FormData(formularioRecarga);
+    const uid = datosFormulario.get('codigoUid');
     const idFestival = entradaIdFestivalTPV.value;
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
 
-    limpiarResultadosEspecificos(); limpiarEstadosNFC();
-    if (!idFestival || !monto || !uid) {
-        mostrarResultadoEspecifico(divResultadoRecarga, "UID, Monto e ID Festival son obligatorios.", true); return;
+    if (!idFestival) {
+        mostrarResultadoEspecifico(divResultadoRecarga, "Error: No se ha definido el ID del Festival para el TPV.", true);
+        return;
     }
-    mostrarResultadoEspecifico(divResultadoRecarga, `Recargando UID: ${uid}...`, false);
-    const cuerpo = new URLSearchParams({ monto, metodoPago });
+    if (!datosFormulario.has('monto') || !datosFormulario.get('monto')) {
+        mostrarResultadoEspecifico(divResultadoRecarga, "Por favor, introduce un monto para la recarga.", true);
+        return;
+    }
+    if (!uid) {
+        mostrarResultadoEspecifico(divResultadoRecarga, "Por favor, introduce o escanea un UID de pulsera.", true);
+        return;
+    }
+
+    const cuerpoPeticion = new URLSearchParams();
+    cuerpoPeticion.append('monto', datosFormulario.get('monto'));
+    cuerpoPeticion.append('metodoPago', datosFormulario.get('metodoPago'));
+
+    mostrarResultadoEspecifico(divResultadoRecarga, `Intentando recargar pulsera UID: ${uid} en Festival ID: ${idFestival}...`, false);
+
     try {
         const url = `${URL_BASE_API}/pos/pulseras/${uid}/recargar?festivalId=${encodeURIComponent(idFestival)}`;
-        const datos = await peticionApiConAutenticacion(url, { method: 'POST', body: cuerpo });
-        if (datos?.saldo !== undefined) {
-            mostrarResultadoEspecifico(divResultadoRecarga, `Recarga OK. Saldo: ${datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`, false);
-            formularioRecarga.codigoUid.value = ''; formularioRecarga.monto.value = '';
-        } else mostrarResultadoEspecifico(divResultadoRecarga, "Error en recarga.", true);
-    } catch (e) { mostrarResultadoEspecifico(divResultadoRecarga, `Error: ${e.message}`, true); }
+        const datos = await peticionApiConAutenticacion(url, {
+            method: 'POST',
+            body: cuerpoPeticion
+        });
+
+        if (datos && datos.saldo !== undefined) {
+            const nuevoSaldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            mostrarResultadoEspecifico(divResultadoRecarga, `Recarga exitosa. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
+            inputRechargeUid.value = ''; // Limpiar campos tras éxito
+            document.getElementById('rechargeAmount').value = '';
+        } else {
+            mostrarResultadoEspecifico(divResultadoRecarga, "Recarga procesada, pero no se recibió el nuevo saldo.", true);
+        }
+
+    } catch (error) {
+        mostrarResultadoEspecifico(divResultadoRecarga, `Error al recargar: ${error.message}`, true);
+    }
 }
 
 async function manejarConsumo(evento) {
     evento.preventDefault();
-    const uid = formularioConsumo.codigoUid.value;
-    const monto = formularioConsumo.monto.value;
-    const descripcion = formularioConsumo.descripcion.value;
-    const idPuntoVenta = formularioConsumo.idPuntoVenta.value;
+    const datosFormulario = new FormData(formularioConsumo);
+    const uid = datosFormulario.get('codigoUid');
     const idFestival = entradaIdFestivalTPV.value;
+    limpiarResultadosEspecificos();
+    limpiarEstadosNFC();
 
-    limpiarResultadosEspecificos(); limpiarEstadosNFC();
-    if (!idFestival || !monto || !uid || !descripcion) {
-        mostrarResultadoEspecifico(divResultadoConsumo, "UID, Monto, Descripción e ID Festival son obligatorios.", true); return;
+    if (!idFestival) {
+        mostrarResultadoEspecifico(divResultadoConsumo, "Error: No se ha definido el ID del Festival para el TPV.", true);
+        return;
     }
-    mostrarResultadoEspecifico(divResultadoConsumo, `Consumiendo de UID: ${uid}...`, false);
-    const cuerpo = new URLSearchParams({ monto, descripcion, idFestival });
-    if (idPuntoVenta) cuerpo.append('idPuntoVenta', idPuntoVenta);
+    if (!datosFormulario.has('monto') || !datosFormulario.get('monto')) {
+        mostrarResultadoEspecifico(divResultadoConsumo, "Por favor, introduce un monto para el consumo.", true);
+        return;
+    }
+    if (!uid) {
+        mostrarResultadoEspecifico(divResultadoConsumo, "Por favor, introduce o escanea un UID de pulsera.", true);
+        return;
+    }
+
+    const cuerpoPeticion = new URLSearchParams();
+    cuerpoPeticion.append('monto', datosFormulario.get('monto'));
+    cuerpoPeticion.append('descripcion', datosFormulario.get('descripcion'));
+    cuerpoPeticion.append('idFestival', idFestival);
+    if (datosFormulario.get('idPuntoVenta')) {
+        cuerpoPeticion.append('idPuntoVenta', datosFormulario.get('idPuntoVenta'));
+    }
+
+    mostrarResultadoEspecifico(divResultadoConsumo, `Intentando registrar consumo en pulsera UID: ${uid} (Fest: ${idFestival})...`, false);
+
     try {
         const url = `${URL_BASE_API}/pos/pulseras/${uid}/consumir`;
-        const datos = await peticionApiConAutenticacion(url, { method: 'POST', body: cuerpo });
-        if (datos?.saldo !== undefined) {
-            mostrarResultadoEspecifico(divResultadoConsumo, `Consumo OK. Saldo: ${datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`, false);
-            formularioConsumo.codigoUid.value = ''; formularioConsumo.monto.value = ''; formularioConsumo.descripcion.value = 'Bebida';
-        } else mostrarResultadoEspecifico(divResultadoConsumo, "Error en consumo.", true);
-    } catch (e) { mostrarResultadoEspecifico(divResultadoConsumo, `Error: ${e.message}`, true); }
+        const datos = await peticionApiConAutenticacion(url, {
+            method: 'POST',
+            body: cuerpoPeticion
+        });
+
+        if (datos && datos.saldo !== undefined) {
+            const nuevoSaldoFormateado = datos.saldo.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+            mostrarResultadoEspecifico(divResultadoConsumo, `Consumo registrado. Nuevo Saldo: ${nuevoSaldoFormateado}`, false);
+            inputConsumeUid.value = ''; // Limpiar campos tras éxito
+            document.getElementById('consumeAmount').value = '';
+            document.getElementById('consumeDescription').value = 'Bebida'; // Resetear descripción
+        } else {
+            mostrarResultadoEspecifico(divResultadoConsumo, "Consumo procesado, pero no se recibió el nuevo saldo.", true);
+        }
+
+    } catch (error) {
+        mostrarResultadoEspecifico(divResultadoConsumo, `Error al consumir: ${error.message}`, true);
+    }
 }
 
 // --- Inicialización ---
 document.addEventListener('DOMContentLoaded', () => {
-    cargarToken();
+    cargarToken(); // Cargar token al iniciar
 
-    // Formularios
+    // Asignar manejadores de eventos a los formularios y botones
     if (formularioLogin) formularioLogin.addEventListener('submit', manejarLogin);
     if (botonCerrarSesion) botonCerrarSesion.addEventListener('click', manejarCierreSesion);
     if (formularioConsultarSaldo) formularioConsultarSaldo.addEventListener('submit', manejarConsultarSaldo);
@@ -393,22 +485,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formularioRecarga) formularioRecarga.addEventListener('submit', manejarRecarga);
     if (formularioConsumo) formularioConsumo.addEventListener('submit', manejarConsumo);
 
-    // Botones NFC
-    if (btnScanNfcCheck) btnScanNfcCheck.addEventListener('click', () => leerEtiquetaNFC(inputCheckUid, statusCheckNfc));
+    // Asignar manejadores a los botones NFC
+    if (btnScanCheck) btnScanCheck.addEventListener('click', () => leerEtiquetaNFC(inputCheckUid, statusCheckNfc));
     if (btnScanNfcAsociar) btnScanNfcAsociar.addEventListener('click', () => leerEtiquetaNFC(inputAsociarUidPulsera, statusNfcAsociar));
     if (btnScanRecharge) btnScanRecharge.addEventListener('click', () => leerEtiquetaNFC(inputRechargeUid, statusRechargeNfc));
     if (btnScanConsume) btnScanConsume.addEventListener('click', () => leerEtiquetaNFC(inputConsumeUid, statusConsumeNfc));
 
-    // Botones Escáner QR
-    if (btnScanQrEntrada) btnScanQrEntrada.addEventListener('click', () => iniciarEscaneoQR(videoQrEntrada, inputAsociarQrEntrada, statusQrEntradaScan, qrScannerEntradaContainer));
-    if (btnStopScanQrEntrada) btnStopScanQrEntrada.addEventListener('click', () => {
-        detenerEscaneoQR();
-        qrScannerEntradaContainer.style.display = 'none';
-        mostrarEstadoScanQR(statusQrEntradaScan, "Escáner detenido.", 'info');
-    });
-
-    // Comprobaciones de compatibilidad
-    if (!('NDEFReader' in window)) console.warn("Web NFC API no compatible.");
-    if (!navigator.mediaDevices?.getUserMedia) console.warn("getUserMedia API (cámara) no compatible.");
-    if (!window.jsQR) console.warn("Librería jsQR no cargada. Escáner QR no funcionará.");
+    // Verificar compatibilidad Web NFC al cargar
+    if (!('NDEFReader' in window)) {
+        console.warn("Web NFC API no es compatible con este navegador.");
+        // Se podría mostrar un mensaje más persistente al usuario si NFC es crucial
+        // Por ejemplo, en un div dedicado en el HTML.
+    } else {
+        console.log("Web NFC API parece ser compatible.");
+    }
 });
