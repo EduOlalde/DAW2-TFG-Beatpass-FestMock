@@ -8,78 +8,78 @@ Repositorio del Backend: [https://github.com/EduOlalde/DAW2-TFG-Beatpass.git](ht
 El simulador proporciona dos interfaces web básicas para probar y demostrar las funcionalidades clave del backend:
 
 1.  **Simulador de Venta de Festival (`festival.html`):**
-    * Muestra los detalles de un festival específico (obtenidos de la API).
+    * Muestra los detalles de un festival (obtenidos de la API según un ID configurable).
     * Lista los tipos de entrada disponibles para ese festival (precio, stock).
-    * Permite simular la compra de entradas, introduciendo los datos del comprador y utilizando Stripe Elements para el procesamiento (simulado) de tarjetas.
-    * Muestra las entradas "compradas" (guardadas localmente en el navegador) con su código QR generado dinámicamente.
+    * Permite simular la compra de entradas, introduciendo datos del comprador y utilizando Stripe Elements para el procesamiento (simulado) de tarjetas.
+    * Muestra las entradas "compradas" (guardadas localmente) con su código QR generado dinámicamente.
     * Permite nominar una entrada comprada a un asistente específico usando el código QR.
 
 2.  **Simulador de Punto de Venta (POS) (`pos.html`):**
-    * Permite iniciar sesión como un usuario con rol CAJERO (u otro rol con permisos POS como ADMIN o PROMOTOR) usando la API de autenticación JWT.
-    * Una vez autenticado, permite realizar operaciones sobre pulseras NFC asociadas a un festival específico:
+    * Permite iniciar sesión como un usuario con rol CAJERO (u otro con permisos POS) usando la API de autenticación JWT.
+    * Una vez autenticado, permite realizar operaciones sobre pulseras NFC asociadas a un festival (ID configurable):
         * Consultar datos y saldo de una pulsera por su UID.
         * Registrar recargas de saldo.
-        * Registrar consumos (validando saldo y pertenencia al festival).
-        * **Lectura de UID de pulseras mediante Web NFC** (si el navegador y dispositivo son compatibles y se otorgan los permisos necesarios).
+        * Registrar consumos.
+        * **Lectura de UID de pulseras mediante Web NFC** (si el navegador/dispositivo es compatible y se otorgan permisos).
         * **Asociación de una pulsera NFC a una entrada existente** mediante el código QR de la entrada y el UID de la pulsera.
+        * **Escaneo de códigos QR de entrada mediante la cámara del dispositivo** (usando `jsQR`, si es compatible y se otorgan permisos) para la asociación de pulseras.
 
 ## Estructura de Archivos
 
-* `index.html`: Página principal simple con enlaces a los dos simuladores.
+* `index.html`: Página principal con enlaces a los simuladores.
 * `festival.html`: Interfaz del simulador de venta del festival.
 * `pos.html`: Interfaz del simulador del punto de venta (POS).
 * `festival_simulator.js`: Lógica JavaScript para `festival.html`.
 * `pos.js`: Lógica JavaScript para `pos.html`.
-* `estilos.css`: Archivo CSS compartido que incluye estilos personalizados y utilidades (complementa a Tailwind CSS cargado vía CDN en `festival.html` e `index.html`).
+* `estilos.css`: Archivo CSS compartido con estilos personalizados.
 
 ## Interacción con el Backend
 
-Estos simuladores realizan llamadas a la API REST del backend de Beatpass TFG:
+Los simuladores realizan llamadas a la API REST del backend de Beatpass TFG:
 
 ### Simulador Festival (`festival.html`):
 * `GET /api/festivales/{id}`: Obtener detalles del festival.
 * `GET /api/festivales/{id}/entradas`: Obtener tipos de entrada.
-* `POST /api/public/venta/iniciar-pago`: Inicia el proceso de pago con Stripe y obtiene un `client_secret`.
-* `POST /api/public/venta/confirmar-compra`: Confirma la compra después del pago exitoso en Stripe.
+* `POST /api/public/venta/iniciar-pago`: Inicia el proceso de pago y obtiene un `client_secret` de Stripe.
+* `POST /api/public/venta/confirmar-compra`: Confirma la compra tras el pago en Stripe.
 * `POST /api/public/venta/nominar`: Nominar una entrada.
 
 ### Simulador POS (`pos.html`):
 * `POST /api/auth/login`: Autenticar usuario y obtener token JWT.
 * `GET /api/pos/pulseras/{codigoUid}`: Consultar pulsera (requiere JWT).
-* `POST /api/pos/pulseras/{codigoUid}/recargar?festivalId={id}`: Recargar pulsera (requiere JWT y `festivalId` como QueryParam).
-* `POST /api/pos/pulseras/{codigoUid}/consumir`: Registrar consumo (requiere JWT; `idFestival`, `monto`, `descripcion` en el cuerpo).
-* `POST /api/pos/pulseras/asociar-entrada-qr`: Asocia una pulsera NFC a una entrada mediante el código QR de la entrada (requiere JWT; `codigoQrEntrada`, `codigoUidPulsera`, `idFestival` en el cuerpo).
+* `POST /api/pos/pulseras/{codigoUid}/recargar?festivalId={id}`: Recargar pulsera (requiere JWT).
+* `POST /api/pos/pulseras/{codigoUid}/consumir`: Registrar consumo (requiere JWT).
+* `POST /api/pos/pulseras/asociar-entrada-qr`: Asocia pulsera a entrada (requiere JWT).
 
 ## Configuración
 
-Antes de usar los simuladores, necesitas configurar las siguientes constantes dentro de los archivos JavaScript (`festival_simulator.js` y `pos.js`):
-
-1.  **`URL_BASE_API`**: Debe apuntar a la URL base donde está desplegado tu backend Beatpass TFG (ej: `http://localhost:8080/BeatpassTFG/api` para pruebas locales o `https://tu-backend.onrender.com/api` para producción).
-2.  **`CLAVE_PUBLICABLE_STRIPE`** (en `festival_simulator.js`): Debe ser tu clave publicable de Stripe para pruebas (ej: `pk_test_xxxxxxxxxxxx`).
+En `festival_simulator.js` y `pos.js`:
+1.  **`URL_BASE_API`**: URL base del backend Beatpass TFG.
+2.  **`CLAVE_PUBLICABLE_STRIPE`** (en `festival_simulator.js`): Clave publicable de Stripe para pruebas.
 
 ## Ejecución Local
 
-1.  Asegúrate de que el backend Beatpass TFG esté ejecutándose y accesible desde la URL configurada en `URL_BASE_API`.
-2.  Abre el archivo `index.html` en tu navegador.
-    * *Recomendado:* Usa una extensión como "Live Server" en VS Code para servir los archivos localmente. Esto evita posibles problemas de CORS si el backend está también en `localhost` y ayuda con la recarga automática.
-3.  Navega entre el simulador de festival y el simulador POS usando los enlaces proporcionados.
+1.  Asegurar que el backend Beatpass TFG esté en ejecución y accesible.
+2.  Abrir `index.html` en un navegador (se recomienda "Live Server" en VS Code).
 
-## Funcionalidad Web NFC
+## Funcionalidades Avanzadas del Navegador
 
-La lectura de etiquetas NFC en `pos.html` utiliza la **Web NFC API**. Esta API tiene las siguientes consideraciones:
-* Solo está disponible en navegadores y dispositivos compatibles (principalmente Chrome en Android).
-* Requiere un contexto seguro (HTTPS), excepto para `localhost`.
-* El usuario debe interactuar con la página (ej. hacer clic en un botón) antes de que se pueda iniciar el escaneo NFC.
-* El usuario deberá otorgar permiso al sitio para usar NFC.
+* **Web NFC (`pos.html`):** Para leer UIDs de pulseras.
+    * Requiere navegador/dispositivo compatible (ej. Chrome en Android).
+    * Requiere contexto seguro (HTTPS), excepto para `localhost`.
+    * El usuario debe interactuar con la página y otorgar permiso.
+* **Escáner QR (`pos.html`):** Para leer códigos QR de entradas.
+    * Utiliza la cámara del dispositivo (`getUserMedia`) y la librería `jsQR`.
+    * Requiere navegador/dispositivo compatible.
+    * Requiere contexto seguro (HTTPS), excepto para `localhost`.
+    * El usuario debe otorgar permiso para el uso de la cámara.
 
-Si Web NFC no está disponible, los campos UID deberán completarse manualmente.
+Si estas APIs no están disponibles, los campos UID y QR deberán completarse manualmente.
 
 ## Despliegue
 
-Estos archivos HTML, CSS y JS son estáticos y pueden desplegarse fácilmente en cualquier servicio de hosting estático, como **GitHub Pages**, Netlify, Vercel, etc.
+Los archivos son estáticos y pueden desplegarse en cualquier servicio de hosting (GitHub Pages, Netlify, etc.).
+* Asegurar que `URL_BASE_API` apunte a la URL pública del backend.
+* Configurar CORS en el backend para permitir solicitudes desde el dominio del frontend.
+* Para Web NFC y escáner QR en producción, el sitio debe servirse sobre **HTTPS**.
 
-**Importante para el despliegue:**
-
-* Asegúrate de que `URL_BASE_API` en los archivos JS apunte a la URL **pública** de tu backend desplegado (ej: la URL de Render).
-* Verifica que la configuración CORS en el `web.xml` (o la configuración de CORS de tu framework Java si no usas `web.xml` directamente para esto) de tu backend permita solicitudes desde el dominio donde despliegues el simulador (ej: `https://tu-usuario.github.io`).
-* Para que Web NFC funcione en producción, el sitio debe servirse sobre **HTTPS**.
