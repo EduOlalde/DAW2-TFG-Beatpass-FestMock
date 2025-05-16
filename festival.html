@@ -31,9 +31,11 @@
 <body class="bg-gray-100 text-gray-900 p-4 md:p-8">
 
     <div class="nav-links-container mb-6">
-        <a href="pos.html" class="nav-link">&rarr; Ir al Simulador POS</a>
+        <a href="pos.html" class="nav-link">Ir al Simulador POS</a>
         <span class="separator">|</span>
-        <a href="index.html" class="nav-link">&larr; Volver al Inicio</a>
+        <a href="nominacion.html" class="nav-link">Ir al Simulador Nominación</a>
+        <span class="separator">|</span>
+        <a href="index.html" class="nav-link">Volver al Inicio</a>
     </div>
 
     <div class="max-w-4xl mx-auto">
@@ -116,39 +118,7 @@
             </div>
             <button id="clear-tickets-button" class="button secondary mt-4 text-sm">Limpiar Entradas Compradas
                 (Simulación)</button>
-        </div>
-
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4">Nominar Entrada con QR</h2>
-            <form id="nominate-ticket-form">
-                <div class="mb-4">
-                    <label for="nominate-qr">Código QR de la Entrada:</label>
-                    <input type="text" id="nominate-qr" name="codigoQr" class="input-field"
-                        placeholder="Pega aquí el código QR (BEATPASS-TICKET-...)" required>
-                    <p class="text-xs-info mt-1">Puedes copiar el código QR de la sección "Mis Entradas Compradas".</p>
-                </div>
-                <h3 class="text-lg font-medium mb-2 text-gray-700">Datos del Nominado</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="nominate-email">Email Nominado:</label>
-                        <input type="email" id="nominate-email" name="emailNominado" class="input-field"
-                            placeholder="nominado@email.com" required>
-                    </div>
-                    <div>
-                        <label for="nominate-name">Nombre Nominado:</label>
-                        <input type="text" id="nominate-name" name="nombreNominado" class="input-field"
-                            placeholder="Nombre Apellido" required>
-                    </div>
-                    <div>
-                        <label for="nominate-phone">Teléfono Nominado (Opcional):</label>
-                        <input type="tel" id="nominate-phone" name="telefonoNominado" class="input-field"
-                            placeholder="600112233">
-                    </div>
-                </div>
-                <button type="submit" class="button primary">Nominar Entrada</button>
-            </form>
-            <div id="nominate-result" class="message-box mt-4" style="display: none;"></div>
-        </div>
+        </div>      
 
     </div>
     <script src="festival_simulator.js"></script>

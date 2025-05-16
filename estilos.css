@@ -5,10 +5,17 @@
 
 /* --- Variables CSS Globales --- */
 :root {
-    --color-primary: #4f46e5;
-    --color-primary-hover: #4338ca;
+    /* Colores de Marca */
+    --color-brand-blue: #3b82f6;
+    --color-brand-purple: #9333ea;
+
+    /* Colores Primarios y Secundarios */
+    --color-primary: var(--color-brand-blue);
+    --color-primary-hover: #2563eb;
     --color-secondary: #6b7280;
     --color-secondary-hover: #4b5563;
+
+    /* Colores Funcionales */
     --color-danger: #dc3545;
     --color-danger-hover: #c82333;
     --color-success-bg: #d4edda;
@@ -19,19 +26,29 @@
     --color-error-border: #f5c6cb;
     --color-info-text: #0056b3;
     --color-warning-text: #856404;
+
+    /* Radios de Borde */
     --border-radius-md: 0.375rem;
     /* 6px */
     --border-radius-lg: 0.5rem;
     /* 8px */
+
+    /* Colores de Texto */
+    --text-on-gradient: #ffffff;
+    --text-on-card: #374151;
     --text-gray-700: #374151;
     --text-gray-600: #4b5563;
     --text-gray-500: #6b7280;
-    --background-light: #f0f2f5;
+
+    /* Fondos */
     --background-card: #ffffff;
+
+    /* Bordes */
     --border-color-light: #d1d5db;
     --border-color-medium: #9ca3af;
+
+    /* Relleno (Padding) */
     --padding-base: 1rem;
-    /* Padding base para móviles */
     --padding-medium: 1.25rem;
     --padding-large: 1.5rem;
 }
@@ -40,8 +57,8 @@
 body {
     font-family: 'Inter', sans-serif;
     line-height: 1.6;
-    background-color: var(--background-light);
-    color: var(--text-gray-700);
+    background-image: linear-gradient(to right, var(--color-brand-blue), var(--color-brand-purple));
+    color: var(--text-on-gradient);
     margin: 0;
     padding: var(--padding-base);
     display: flex;
@@ -49,19 +66,18 @@ body {
     align-items: center;
     min-height: 100vh;
     font-size: 16px;
-    /* Tamaño de fuente base */
 }
 
 /* --- Contenedores y Tarjetas --- */
 .container,
 .card {
     background-color: var(--background-card);
+    color: var(--text-on-card);
     border-radius: var(--border-radius-lg);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 3px 6px rgba(0, 0, 0, 0.05);
     padding: var(--padding-medium);
     margin-bottom: var(--padding-medium);
     width: 100%;
-    /* Ancho completo en móviles, limitado por max-width */
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -70,20 +86,20 @@ body {
 
 /* --- Títulos --- */
 h1 {
-    color: var(--color-primary);
+    color: var(--text-on-gradient);
+    /* Cambiado para mejor contraste sobre el gradiente del body */
     text-align: center;
     font-size: 1.75rem;
-    /* Ajustado para móviles */
     font-weight: 700;
     margin-top: var(--padding-base);
     margin-bottom: var(--padding-large);
 }
 
 h2 {
-    color: var(--text-gray-700);
+    color: var(--color-primary);
+    /* Mantenido, buen contraste en tarjetas blancas */
     text-align: left;
     font-size: 1.125rem;
-    /* Ajustado para móviles */
     font-weight: 600;
     margin-top: 0;
     margin-bottom: var(--padding-base);
@@ -97,7 +113,6 @@ h2 {
     margin-bottom: var(--padding-medium);
     display: flex;
     flex-wrap: wrap;
-    /* Para que los enlaces se ajusten en pantallas pequeñas */
     justify-content: center;
     gap: 0.5rem;
 }
@@ -105,23 +120,31 @@ h2 {
 .nav-link {
     display: inline-block;
     padding: 0.625rem 1rem;
-    background-color: var(--color-primary);
-    color: white;
+    background-color: #ffffff;
+    /* Cambiado para contraste */
+    color: var(--color-primary);
+    /* Cambiado para contraste */
+    border: 1px solid var(--color-primary);
+    /* Borde añadido */
     border-radius: var(--border-radius-md);
     font-weight: 500;
     text-decoration: none;
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
     font-size: 0.875rem;
 }
 
 .nav-link:hover {
     background-color: var(--color-primary-hover);
+    /* Invertido para hover */
+    color: #ffffff;
+    /* Invertido para hover */
+    border-color: var(--color-primary-hover);
 }
 
 .nav-links-container span.separator {
-    color: var(--text-gray-500);
+    color: var(--text-on-gradient);
+    /* Cambiado para visibilidad sobre gradiente */
     align-self: center;
-    /* Alinear verticalmente con los botones/enlaces */
 }
 
 /* --- Formularios --- */
@@ -130,7 +153,7 @@ label {
     margin-bottom: 0.375rem;
     font-weight: 500;
     font-size: 0.875rem;
-    color: var(--text-gray-700);
+    color: var(--text-on-card);
 }
 
 .input-field,
@@ -138,30 +161,26 @@ select.input-field {
     border: 1px solid var(--border-color-light);
     border-radius: var(--border-radius-md);
     padding: 0.75rem;
-    /* Padding para facilidad de toque */
     width: 100%;
     box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     box-sizing: border-box;
     margin-bottom: var(--padding-base);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-size: 1rem;
-    /* Tamaño de fuente legible */
+    color: var(--text-on-card);
 }
 
 .input-field:focus,
 select.input-field:focus {
     outline: 0;
-    /* Quitar outline por defecto */
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
-    /* Anillo de foco */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
 
 /* --- Botones --- */
 .button {
     color: white;
     padding: 0.75rem 1.25rem;
-    /* Padding para facilidad de toque */
     border-radius: var(--border-radius-md);
     font-weight: 500;
     cursor: pointer;
@@ -219,11 +238,8 @@ select.input-field:focus {
     padding: 0.625rem 0.875rem;
     font-size: 0.875rem;
     width: auto;
-    /* No ocupan todo el ancho */
     flex-shrink: 0;
-    /* No se encogen si el espacio es limitado */
     margin-top: 0;
-    /* Sin margen superior si están en un grupo */
     background-color: var(--color-secondary);
 }
 
@@ -237,7 +253,6 @@ select.input-field:focus {
 .input-scan-group {
     display: flex;
     align-items: stretch;
-    /* Botón y input con la misma altura */
     gap: 0.5rem;
     margin-bottom: 0.5rem;
 }
@@ -245,16 +260,13 @@ select.input-field:focus {
 .input-nfc-group .input-field,
 .input-scan-group .input-field {
     flex-grow: 1;
-    /* Input ocupa el espacio restante */
     margin-bottom: 0;
 }
 
 .input-nfc-group .button,
 .input-scan-group .button {
     height: auto;
-    /* Altura se ajusta al padding */
     align-self: stretch;
-    /* Ocupa toda la altura del item flex */
 }
 
 /* Estado de Escaneo (NFC o QR) */
@@ -262,10 +274,8 @@ select.input-field:focus {
 .scan-status {
     font-size: 0.875rem;
     margin-top: -0.375rem;
-    /* Acercar al grupo de input */
     margin-bottom: 0.75rem;
     min-height: 1.2em;
-    /* Evitar saltos de layout */
     padding-left: 0.125rem;
 }
 
@@ -296,37 +306,29 @@ select.input-field:focus {
     border: 1px solid var(--border-color-medium);
     padding: 0.5rem;
     position: relative;
-    /* Para posicionar botón de detener */
     background-color: #000;
-    /* Fondo oscuro para el vídeo */
     border-radius: var(--border-radius-md);
 }
 
 .qr-video {
     width: 100%;
     max-height: 240px;
-    /* Altura máxima del vídeo en móviles */
     border-radius: var(--border-radius-md);
     display: block;
-    /* Evitar espacio extra debajo */
 }
 
 .stop-scan-button {
-    /* Botón para detener escáner QR */
     position: absolute;
     top: 8px;
     right: 8px;
     width: auto;
     padding: 0.375rem 0.625rem;
     font-size: 0.8rem;
-    /* Botón pequeño */
     z-index: 10;
-    /* Sobre el vídeo */
 }
 
 /* --- Mensajes y Resultados --- */
 #loginStatus {
-    /* Estado del login en POS */
     font-weight: 600;
     padding: 0.375rem 0.75rem;
     border-radius: var(--border-radius-md);
@@ -345,7 +347,6 @@ select.input-field:focus {
     color: var(--color-error-text);
 }
 
-/* Resultados de sección (POS) y Mensajes generales (Festival) */
 .section-result,
 .message-box {
     margin-top: 1rem;
@@ -357,7 +358,7 @@ select.input-field:focus {
     border-style: solid;
     word-wrap: break-word;
     display: none;
-    /* Ocultos por defecto, se muestran con JS añadiendo .visible */
+    /* Ocultos por defecto, se muestran con JS */
 }
 
 .section-result.visible,
@@ -380,20 +381,17 @@ select.input-field:focus {
 }
 
 #resultArea {
-    /* Área para respuestas completas de API en POS */
     margin-top: 1.25rem;
     padding: 1rem;
     border: 1px solid var(--border-color-light);
     background-color: #f9fafb;
+    color: var(--text-on-card);
     border-radius: var(--border-radius-md);
     white-space: pre-wrap;
-    /* Conservar formato del JSON */
     word-wrap: break-word;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-    /* Fuente monoespaciada */
     min-height: 60px;
     font-size: 0.8125rem;
-    /* Ligeramente más pequeño en móviles */
     line-height: 1.5;
 }
 
@@ -401,16 +399,12 @@ select.input-field:focus {
     border-color: var(--color-success-border);
 }
 
-/* Borde de éxito */
 #resultArea.error {
     border-color: var(--color-error-border);
 }
 
-/* Borde de error */
-
-/* --- Específicos de festival.html (para consistencia si se usa este CSS) --- */
+/* --- Específicos de festival.html --- */
 #card-element {
-    /* Contenedor del elemento de tarjeta de Stripe */
     border: 1px solid var(--border-color-light);
     border-radius: var(--border-radius-md);
     padding: 0.75rem;
@@ -419,14 +413,12 @@ select.input-field:focus {
 }
 
 #card-errors {
-    /* Mensajes de error del elemento de tarjeta de Stripe */
     color: var(--color-error-text);
     font-size: 0.875rem;
     margin-top: 0.5rem;
 }
 
 .qr-image-display {
-    /* Imagen QR de la entrada en festival.html */
     border: 1px solid #e5e7eb;
     display: block;
     margin-top: 0.5rem;
@@ -445,16 +437,14 @@ select.input-field:focus {
     margin-top: 0.25rem;
 }
 
-/* --- Spinner para Botones (animación) --- */
+/* --- Spinner para Botones --- */
 .button .spinner {
     display: none;
     width: 1em;
     height: 1em;
-    /* Tamaño relativo al texto del botón */
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     border-top-color: #fff;
-    /* Segmento visible del spinner */
     animation: spin 0.8s ease-in-out infinite;
     margin-left: 0.5rem;
     vertical-align: middle;
@@ -470,18 +460,14 @@ select.input-field:focus {
     display: inline-block;
 }
 
-/* Mostrar spinner */
 .button.loading .button-text {
     display: none;
 }
 
-/* Ocultar texto del botón al cargar */
-
-/* --- Media Queries para ajustes finos en pantallas pequeñas --- */
+/* --- Media Queries --- */
 @media (max-width: 400px) {
     body {
         padding: 0.75rem;
-        /* Menos padding en pantallas muy estrechas */
     }
 
     .container,
@@ -492,30 +478,25 @@ select.input-field:focus {
 
     h1 {
         font-size: 1.5rem;
-        /* Título principal más pequeño */
         margin-bottom: var(--padding-medium);
     }
 
     h2 {
         font-size: 1rem;
-        /* Títulos de sección más pequeños */
     }
 
     .input-field,
     select.input-field,
     .button {
         font-size: 0.9375rem;
-        /* Asegurar buena legibilidad y facilidad de toque */
     }
 
     .nav-link {
-        /* Enlaces de navegación más compactos */
         padding: 0.5rem 0.75rem;
         font-size: 0.8125rem;
     }
 
     #resultArea {
         font-size: 0.75rem;
-        /* Texto de resultado API más pequeño */
     }
 }
