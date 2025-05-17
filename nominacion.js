@@ -1,145 +1,78 @@
 /**
- * nominacion.js
- * Lógica para la página de nominación de entradas.
- * Incluye escaneo de QR y envío de datos de nominación.
+ * nominar_entrada_simulador.js
+ * Lógica para el simulador de nominación de entradas.
+ * Permite la entrada manual de códigos QR, escaneo mediante cámara y envío a API.
  */
 
 // --- Configuración ---
-const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api'; // URL de producción
-//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para desarrollo local
+// Asegúrate de que esta URL base sea la correcta para tu entorno de backend.
+const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api'; 
+//const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Ejemplo desarrollo local
 
-// --- Variables Globales para el Escáner QR ---
-let currentQrStream = null;
-let qrAnimationId = null;
+// --- Variables Globales ---
+let currentQrStream = null; // Stream de la cámara para el escáner QR
+let qrAnimationId = null; // ID para requestAnimationFrame del escáner QR
 
 // --- Selectores del DOM ---
-const nominationForm = document.getElementById('nominate-ticket-form-standalone');
-const qrCodeInput = document.getElementById('nominate-qr');
+const qrForm = document.getElementById('qr-form');
+const codigoQrManualInput = document.getElementById('codigoQrManual');
 const scanQrButton = document.getElementById('scanQrButton');
 const qrScannerContainer = document.getElementById('qrScannerContainer');
-const qrVideoElement = document.getElementById('qrVideo');
+const qrVideo = document.getElementById('qrVideo');
 const stopScanQrButton = document.getElementById('stopScanQrButton');
-const qrScanStatusElement = document.getElementById('qrScanStatus');
-const nominationResultElement = document.getElementById('nominate-result');
-const submitButton = document.getElementById('submit-nomination-button');
-const buttonTextElement = submitButton ? submitButton.querySelector('.button-text') : null;
-const spinnerElement = submitButton ? submitButton.querySelector('.spinner') : null;
+const statusQrScan = document.getElementById('statusQrScan');
 
+const nominationForm = document.getElementById('nomination-form');
+const codigoQrHiddenInput = document.getElementById('codigoQr'); // Input oculto en el form de nominación
+const nombreNominadoInput = document.getElementById('nombreNominado');
+const emailNominadoInput = document.getElementById('emailNominado');
+const confirmEmailNominadoInput = document.getElementById('confirmEmailNominado');
+const telefonoNominadoInput = document.getElementById('telefonoNominado');
+const submitNominationButton = document.getElementById('submitNominationButton');
+const nominationResultDiv = document.getElementById('nominationResult');
 
-// --- UI ---
-/**
- * Muestra un mensaje en un elemento de la UI.
- * @param {HTMLElement} elemento El elemento donde mostrar el mensaje.
- * @param {string} mensaje El mensaje a mostrar.
- * @param {boolean} esError True si es un mensaje de error, false si es de éxito/informativo.
- */
+// --- UI Helper Functions ---
 function mostrarMensajeUI(elemento, mensaje, esError) {
     if (!elemento) return;
-    elemento.innerHTML = `<p>${mensaje}</p>`; // Usar innerHTML para permitir etiquetas si es necesario.
-
-    // Limpiar clases previas y establecer las nuevas
-    elemento.className = 'message-box'; // Clase base
-    if (esError) {
-        elemento.classList.add('error-message');
-    } else {
-        elemento.classList.add('success-message');
-    }
-    elemento.classList.add('visible'); // Clase para controlar visibilidad vía CSS
-
-    // Asegurar que el elemento sea visible (CSS debería manejar esto con .visible)
-    // pero una asignación directa de estilo lo refuerza.
+    elemento.innerHTML = `<p>${mensaje}</p>`; // Usar innerHTML para permitir mensajes con formato si es necesario
+    elemento.className = `message-box card visible ${esError ? 'error-message' : 'success-message'}`;
     elemento.style.display = 'block';
-
-    if (esError) {
-        console.error("Mensaje UI (Error):", mensaje);
-    } else {
-        console.log("Mensaje UI (Éxito/Info):", mensaje);
-    }
+    if (esError) console.error("Mensaje UI (Error):", mensaje);
 }
 
-/**
- * Limpia un mensaje de un elemento de la UI y lo oculta.
- * @param {HTMLElement} elemento El elemento del mensaje a limpiar.
- */
 function limpiarMensajeUI(elemento) {
     if (elemento) {
         elemento.innerHTML = '';
-        elemento.className = 'message-box'; // Restablecer a clase base
-        elemento.style.display = 'none';    // Ocultar explícitamente
+        elemento.style.display = 'none';
+        elemento.className = 'message-box card'; // Reset class
     }
 }
 
-function establecerEstadoCargaBoton(estaCargando, boton, textoElem, spinnerElem) {
-    if (!boton || !textoElem || !spinnerElem) return;
-    const textoOriginal = textoElem.dataset.originalText || textoElem.textContent;
-    if (!textoElem.dataset.originalText) {
-        textoElem.dataset.originalText = textoOriginal;
-    }
+function setButtonLoadingState(button, isLoading) {
+    const buttonText = button.querySelector('.button-text');
+    const spinner = button.querySelector('.spinner');
 
-    if (estaCargando) {
-        boton.disabled = true;
-        textoElem.style.display = 'none';
-        spinnerElem.style.display = 'inline-block';
-        boton.classList.add('loading');
+    if (isLoading) {
+        button.disabled = true;
+        if (buttonText) buttonText.style.display = 'none';
+        if (spinner) spinner.style.display = 'inline-block';
+        button.classList.add('loading');
     } else {
-        boton.disabled = false;
-        textoElem.style.display = 'inline';
-        // textoElem.textContent = textoOriginal; // No es necesario si el texto no cambia
-        spinnerElem.style.display = 'none';
-        boton.classList.remove('loading');
+        button.disabled = false;
+        if (buttonText) buttonText.style.display = 'inline';
+        if (spinner) spinner.style.display = 'none';
+        button.classList.remove('loading');
     }
 }
 
 function mostrarEstadoScanQR(mensaje, tipo = 'info') {
-    if (qrScanStatusElement) {
-        qrScanStatusElement.textContent = String(mensaje);
-        qrScanStatusElement.className = `scan-status ${tipo}`; // Clases: info, success, warning, error
+    if (statusQrScan) {
+        statusQrScan.textContent = String(mensaje);
+        statusQrScan.className = `scan-status ${tipo}`; // Asegúrate que 'info', 'success', 'error' estén en estilos.css
     }
 }
 
-// --- API ---
-async function peticionApi(url, opciones = {}) {
-    const cabeceras = { ...(opciones.headers || {}) };
-    if (opciones.body) {
-        if (typeof opciones.body === 'object' &&
-            !(opciones.body instanceof FormData) &&
-            !(opciones.body instanceof URLSearchParams)) {
-            if (!cabeceras['Content-Type']) {
-                cabeceras['Content-Type'] = 'application/json';
-            }
-            opciones.body = JSON.stringify(opciones.body);
-        } else if (opciones.body instanceof URLSearchParams) {
-            if (!cabeceras['Content-Type']) {
-                cabeceras['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
-            }
-        }
-    }
-    const opcionesFetch = { ...opciones, headers: cabeceras };
-
-    try {
-        const respuesta = await fetch(url, opcionesFetch);
-        let datosRespuesta = null;
-        const tipoContenido = respuesta.headers.get('content-type');
-
-        if (tipoContenido?.includes('application/json')) {
-            try { datosRespuesta = await respuesta.json(); }
-            catch (e) { datosRespuesta = await respuesta.text(); }
-        } else {
-            datosRespuesta = await respuesta.text();
-        }
-
-        if (!respuesta.ok) {
-            const mensajeError = (typeof datosRespuesta === 'object' && datosRespuesta?.error) ? datosRespuesta.error : (datosRespuesta || `Error ${respuesta.status}`);
-            throw new Error(mensajeError);
-        }
-        return datosRespuesta;
-    } catch (error) {
-        console.error(`Error en API ${url}:`, error.message);
-        throw error;
-    }
-}
-
-// --- Escáner QR ---
+// --- Lógica de Escaneo QR (adaptada de pos.js) ---
 async function iniciarEscaneoQR() {
     if (!navigator.mediaDevices?.getUserMedia) {
         mostrarEstadoScanQR("La cámara no es compatible con este navegador.", 'error');
@@ -150,56 +83,60 @@ async function iniciarEscaneoQR() {
         return;
     }
 
-    detenerEscaneoQRPrevio();
+    detenerEscaneoQR(); // Detener cualquier stream previo
+    setButtonLoadingState(scanQrButton, true);
 
     try {
         currentQrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        qrVideoElement.srcObject = currentQrStream;
-        qrVideoElement.onloadedmetadata = () => {
-            qrVideoElement.play().catch(e => console.error("Error al reproducir video:", e));
-        };
+        qrVideo.srcObject = currentQrStream;
+        await qrVideo.play(); // Esperar a que el video comience a reproducirse
+
         qrScannerContainer.style.display = 'block';
-        scanQrButton.disabled = true;
-        stopScanQrButton.disabled = false;
-        mostrarEstadoScanQR("Apunte la cámara al código QR...", 'info');
+        mostrarEstadoScanQR("Escaneando QR... Apunta la cámara al código.", 'info');
+        stopScanQrButton.style.display = 'block'; // Mostrar botón de detener
 
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d', { willReadFrequently: true });
 
         function tick() {
-            if (qrVideoElement.readyState === qrVideoElement.HAVE_ENOUGH_DATA && currentQrStream) {
-                canvas.height = qrVideoElement.videoHeight;
-                canvas.width = qrVideoElement.videoWidth;
-                if (canvas.width > 0 && canvas.height > 0) {
-                    context.drawImage(qrVideoElement, 0, 0, canvas.width, canvas.height);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-                    if (code && code.data) {
-                        qrCodeInput.value = code.data;
-                        mostrarEstadoScanQR(`QR Detectado: ${code.data.substring(0, 30)}...`, 'success');
-                        detenerEscaneoQR();
-                    }
+            if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
+                canvas.height = qrVideo.videoHeight;
+                canvas.width = qrVideo.videoWidth;
+                context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert", // "dontInvert" es default, "attemptBoth" o "invertFirst" pueden ayudar
+                });
+
+                if (code && code.data) {
+                    codigoQrManualInput.value = code.data; // Poner el QR en el campo manual
+                    codigoQrHiddenInput.value = code.data; // Y en el campo oculto del form de nominación
+                    mostrarEstadoScanQR(`QR Detectado: ${code.data.substring(0, 30)}...`, 'success');
+                    detenerEscaneoQR();
+                    qrScannerContainer.style.display = 'none';
                 }
             }
-            if (currentQrStream) {
+            if (currentQrStream) { // Solo continuar si el stream está activo
                 qrAnimationId = requestAnimationFrame(tick);
             }
         }
         qrAnimationId = requestAnimationFrame(tick);
+
     } catch (err) {
         let msg = "Error al acceder a la cámara.";
         if (err.name === "NotAllowedError") msg = "Permiso para usar la cámara denegado.";
         else if (err.name === "NotFoundError") msg = "No se encontró una cámara compatible.";
-        else if (err.name === "NotReadableError") msg = "La cámara está siendo utilizada por otra aplicación o sistema.";
+        else if (err.name === "NotReadableError") msg = "La cámara ya está en uso o no se puede leer.";
+        console.error("Error de cámara:", err);
         mostrarEstadoScanQR(msg, 'error');
-        console.error("Error detallado de cámara:", err);
         detenerEscaneoQR();
+        qrScannerContainer.style.display = 'none';
+    } finally {
+        setButtonLoadingState(scanQrButton, false);
     }
 }
 
-function detenerEscaneoQRPrevio() {
+function detenerEscaneoQR() {
     if (qrAnimationId) {
         cancelAnimationFrame(qrAnimationId);
         qrAnimationId = null;
@@ -208,96 +145,116 @@ function detenerEscaneoQRPrevio() {
         currentQrStream.getTracks().forEach(track => track.stop());
         currentQrStream = null;
     }
-    if (qrVideoElement) {
-        qrVideoElement.srcObject = null;
+    if (qrVideo) {
+        qrVideo.srcObject = null;
     }
+    // No ocultar qrScannerContainer aquí, se maneja donde se llama a detener.
+    // mostrarEstadoScanQR("Escáner detenido.", 'info'); // Opcional: mensaje al detener manualmente
+    stopScanQrButton.style.display = 'none';
 }
 
 
-function detenerEscaneoQR() {
-    detenerEscaneoQRPrevio();
-    qrScannerContainer.style.display = 'none';
-    scanQrButton.disabled = false;
-    stopScanQrButton.disabled = true;
-    // Solo actualizar el mensaje si no se detectó un QR o si estaba en estado "Apunte..."
-    if (qrScanStatusElement && (qrScanStatusElement.textContent.includes("Apunte la cámara") || qrScanStatusElement.textContent === "" || !qrScanStatusElement.classList.contains('success'))) {
-        mostrarEstadoScanQR("Escaneo detenido por el usuario.", 'info');
+// --- Lógica de Nominación ---
+async function manejarNominacion(event) {
+    event.preventDefault();
+    limpiarMensajeUI(nominationResultDiv);
+    setButtonLoadingState(submitNominationButton, true);
+
+    // Tomar el valor del QR del campo manual, ya que el escáner también lo actualiza ahí.
+    const codigoQrValue = codigoQrManualInput.value.trim();
+    if (!codigoQrValue) {
+        mostrarMensajeUI(nominationResultDiv, "El código QR de la entrada es obligatorio. Introdúcelo manualmente o escanéalo.", true);
+        setButtonLoadingState(submitNominationButton, false);
+        return;
     }
-}
+    // Actualizar el campo oculto por si acaso se editó manualmente el visible
+    codigoQrHiddenInput.value = codigoQrValue;
 
-
-// --- Nominación ---
-async function manejarNominacion(evento) {
-    evento.preventDefault();
-    limpiarMensajeUI(nominationResultElement); // Limpiar mensajes previos de nominación
-    establecerEstadoCargaBoton(true, submitButton, buttonTextElement, spinnerElement);
 
     const formData = new FormData(nominationForm);
-    const cuerpoPeticion = new URLSearchParams();
+    const formProps = Object.fromEntries(formData); // Para facilitar el acceso a los datos
 
-    // Validaciones básicas
-    const codigoQr = formData.get('codigoQr');
-    const emailNominado = formData.get('emailNominado');
-    const nombreNominado = formData.get('nombreNominado');
-
-    if (!codigoQr || !emailNominado || !nombreNominado) {
-        mostrarMensajeUI(nominationResultElement, "El código QR, el email y el nombre del nominado son obligatorios.", true);
-        establecerEstadoCargaBoton(false, submitButton, buttonTextElement, spinnerElement);
+    if (formProps.emailNominado !== formProps.confirmEmailNominado) {
+        mostrarMensajeUI(nominationResultDiv, "Los emails introducidos no coinciden. Por favor, verifica.", true);
+        setButtonLoadingState(submitNominationButton, false);
         return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailNominado)) {
-        mostrarMensajeUI(nominationResultElement, "Por favor, introduce un email válido para el nominado.", true);
-        establecerEstadoCargaBoton(false, submitButton, buttonTextElement, spinnerElement);
+    // Validaciones adicionales de campos si es necesario (longitud, formato, etc.)
+    if (!formProps.nombreNominado || !formProps.emailNominado) {
+        mostrarMensajeUI(nominationResultDiv, "Nombre y Email del nominado son obligatorios.", true);
+        setButtonLoadingState(submitNominationButton, false);
         return;
     }
 
-    for (const [key, value] of formData.entries()) {
-        cuerpoPeticion.append(key, value);
-    }
 
     try {
-        const respuesta = await peticionApi(`${URL_BASE_API}/public/venta/nominar`, {
+        const response = await fetch(`${URL_BASE_API}/public/venta/nominar`, {
             method: 'POST',
-            body: cuerpoPeticion,
+            body: new URLSearchParams(formData) // Enviar como x-www-form-urlencoded
+            // redirect: 'follow' // es el comportamiento por defecto de fetch
         });
-        mostrarMensajeUI(nominationResultElement, respuesta.mensaje || 'Entrada nominada correctamente.', false);
-        nominationForm.reset();
-        limpiarMensajeUI(qrScanStatusElement); // Limpiar estado del escáner QR
+
+        // La API redirige, así que response.url será la URL final.
+        // Los mensajes de éxito/error están en los query params de la URL final.
+        const finalUrl = new URL(response.url);
+        const successMessage = finalUrl.searchParams.get('successMessage');
+        const errorMessageFromQuery = finalUrl.searchParams.get('error'); // 'error' es el nombre del param en tu API
+
+        if (response.ok && successMessage) {
+            mostrarMensajeUI(nominationResultDiv, successMessage, false);
+            nominationForm.reset(); // Limpiar formulario en éxito
+            codigoQrManualInput.value = ''; // Limpiar también el QR manual
+            codigoQrHiddenInput.value = '';
+        } else if (errorMessageFromQuery) {
+            mostrarMensajeUI(nominationResultDiv, errorMessageFromQuery, true);
+        } else {
+            // Si no hay query params específicos, pero la respuesta no fue OK (ej. error 500 antes de redirigir)
+            // o si la página redirigida no tiene los parámetros esperados.
+            const responseText = await response.text(); // El cuerpo podría ser HTML de una página de error
+            console.error("Respuesta del servidor (inesperada):", responseText);
+            mostrarMensajeUI(nominationResultDiv, "Error al nominar la entrada. Respuesta inesperada del servidor.", true);
+        }
+
     } catch (error) {
-        mostrarMensajeUI(nominationResultElement, `Error al nominar: ${error.message}`, true);
+        console.error('Error en la petición de nominación:', error);
+        mostrarMensajeUI(nominationResultDiv, `Error de red o conexión al intentar nominar: ${error.message}`, true);
     } finally {
-        establecerEstadoCargaBoton(false, submitButton, buttonTextElement, spinnerElement);
+        setButtonLoadingState(submitNominationButton, false);
     }
 }
 
-// --- Inicialización ---
+
+// --- Inicialización y Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Comprobar que todos los elementos críticos del DOM existen
-    if (!nominationForm || !scanQrButton || !stopScanQrButton || !qrVideoElement ||
-        !qrScannerContainer || !qrCodeInput || !qrScanStatusElement ||
-        !nominationResultElement || !submitButton || !buttonTextElement || !spinnerElement) {
-        console.error("Error crítico: No se encontraron todos los elementos del DOM necesarios para la página de nominación.");
-        // Opcionalmente, mostrar un mensaje al usuario en la propia página
-        const body = document.querySelector('body');
-        if (body) {
-            const errorDiv = document.createElement('div');
-            errorDiv.textContent = "Error: La página de nominación no pudo cargarse completamente. Algunos elementos faltan.";
-            errorDiv.style.color = "red";
-            errorDiv.style.backgroundColor = "#fdd";
-            errorDiv.style.border = "1px solid red";
-            errorDiv.style.padding = "10px";
-            errorDiv.style.margin = "10px";
-            errorDiv.style.textAlign = "center";
-            errorDiv.style.fontWeight = "bold";
-            body.prepend(errorDiv); // Añadir al principio del body
-        }
-        return; // Detener la ejecución si faltan elementos clave
+    if (scanQrButton) {
+        scanQrButton.addEventListener('click', iniciarEscaneoQR);
+    }
+    if (stopScanQrButton) {
+        stopScanQrButton.addEventListener('click', () => {
+            detenerEscaneoQR();
+            qrScannerContainer.style.display = 'none'; // Ocultar el contenedor del video
+            mostrarEstadoScanQR("Escáner detenido por el usuario.", 'info');
+        });
+    }
+    if (nominationForm) {
+        nominationForm.addEventListener('submit', manejarNominacion);
     }
 
-    nominationForm.addEventListener('submit', manejarNominacion);
-    scanQrButton.addEventListener('click', iniciarEscaneoQR);
-    stopScanQrButton.addEventListener('click', detenerEscaneoQR);
-    stopScanQrButton.disabled = true; // Botón de detener escaneo inicialmente deshabilitado
+    // Sincronizar el input manual del QR con el hidden input del form de nominación
+    if (codigoQrManualInput && codigoQrHiddenInput) {
+        codigoQrManualInput.addEventListener('input', (event) => {
+            codigoQrHiddenInput.value = event.target.value;
+        });
+    }
+
+    // Comprobaciones de compatibilidad (opcional, para informar al usuario)
+    if (!navigator.mediaDevices?.getUserMedia) {
+        console.warn("getUserMedia API (cámara) no es compatible con este navegador.");
+        mostrarEstadoScanQR("La función de escaneo con cámara puede no estar disponible en este navegador.", 'warning');
+    }
+    if (!window.jsQR) {
+        console.warn("Librería jsQR no cargada. El escáner QR no funcionará.");
+        mostrarEstadoScanQR("Error al cargar el componente de escaneo QR.", 'error');
+    }
 });

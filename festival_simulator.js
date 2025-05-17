@@ -6,8 +6,8 @@
 
 // --- Configuración ---
 const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para desarrollo local
-const CLAVE_PUBLICABLE_STRIPE = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX'; // Reemplazar con tu clave publicable real
+//const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Para desarrollo local
+const CLAVE_PUBLICABLE_STRIPE = 'pk_test_51RLUyq4Et9Src69RTyKKrqn48wubA5QIbS9zTguw8chLB8FGgwMt9sZV6VwvT4UEWE0vnKxaJCNFlj87EY6i9mGK00ggcR1AiX'; 
 
 // --- Variables Globales ---
 let entradasCompradas = JSON.parse(localStorage.getItem('entradasCompradas') || '[]');
