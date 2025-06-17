@@ -7,7 +7,7 @@
 // --- Configuración ---
 // Asegúrate de que esta URL base sea la correcta para tu entorno de backend.
 const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api'; 
-//const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Ejemplo desarrollo local
+//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; 
 
 // --- Variables Globales ---
 let currentQrStream = null; // Stream de la cámara para el escáner QR

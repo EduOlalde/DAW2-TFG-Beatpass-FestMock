@@ -1,5 +1,5 @@
 const URL_BASE_API = 'https://daw2-tfg-beatpass.onrender.com/api';
-//const URL_BASE_API = 'http://localhost:8080/BeatpassTFG/api'; // Para desarrollo local
+//const URL_BASE_API = 'http://localhost:8888/BeatpassTFG/api'; // Para desarrollo local
 let tokenJwt = null;
 let currentQrStream = null; // Stream de la cámara para el escáner QR
 let qrAnimationId = null; // ID para requestAnimationFrame del escáner QR
